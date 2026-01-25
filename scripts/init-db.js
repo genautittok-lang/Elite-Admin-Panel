@@ -11,7 +11,7 @@ const { Pool } = pg;
 async function initDatabase() {
   console.log('');
   console.log('╔════════════════════════════════════════════════════════════╗');
-  console.log('║           🌸 FlowerB2B Database Initialization 🌸           ║');
+  console.log('║           🌸 FlowerB2B Database Check 🌸                    ║');
   console.log('╚════════════════════════════════════════════════════════════╝');
   console.log('');
 
@@ -31,6 +31,29 @@ async function initDatabase() {
     console.log('✅ Connected successfully!');
     console.log('');
 
+    // Check if tables already exist
+    const checkResult = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = 'customers'
+      );
+    `);
+
+    if (checkResult.rows[0].exists) {
+      console.log('📦 Tables already exist - skipping initialization');
+      console.log('');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║              ✅ Database ready!                            ║');
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('');
+      client.release();
+      await pool.end();
+      return;
+    }
+
+    // Tables don't exist - create them
+    console.log('🆕 First run - initializing database...');
+    
     // Read SQL file
     const sqlPath = path.join(__dirname, 'init-db.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
