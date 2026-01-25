@@ -359,10 +359,11 @@ export async function registerRoutes(
       }
       
       // Send notification if bot is active
-      if (order.customer?.telegramId) {
+      const orderWithDetails = await storage.getOrder(req.params.id);
+      if (orderWithDetails?.customer?.telegramId) {
         try {
-          const message = `🔔 Статус замовлення ${order.orderNumber} змінено на: ${status}`;
-          await bot?.telegram.sendMessage(order.customer.telegramId, message);
+          const message = `🔔 Статус замовлення ${orderWithDetails.orderNumber} змінено на: ${status}`;
+          await bot?.telegram.sendMessage(orderWithDetails.customer.telegramId, message);
         } catch (e) {
           console.error("Failed to send telegram notification", e);
         }

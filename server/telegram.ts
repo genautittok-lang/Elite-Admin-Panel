@@ -10,7 +10,36 @@ export const bot = token ? new Telegraf(token) : null;
 
 if (bot) {
   bot.start((ctx) => {
-    ctx.reply('Ласкаво просимо до FlowerB2B! 🌸\nТут ви можете отримувати сповіщення про ваші замовлення та новинки каталогу.');
+    ctx.reply('Ласкаво просимо до FlowerB2B! 🌸\n\nЯ — ваш помічник для замовлення квітів оптом.\n\nКоманди:\n/catalog — Переглянути актуальний каталог\n/status — Перевірити статус моїх замовлень\n/loyalty — Мій баланс та бонуси');
+  });
+
+  bot.command('catalog', async (ctx) => {
+    const products = await storage.getProducts();
+    const available = products.filter(p => p.status === 'available').slice(0, 10);
+    
+    if (available.length === 0) {
+      return ctx.reply('На жаль, зараз немає доступних товарів у каталозі.');
+    }
+
+    let message = '🌿 Актуальний каталог (ТОП-10):\n\n';
+    available.forEach(p => {
+      const price = p.priceUah ? `${p.priceUah} грн` : `$${p.priceUsd}`;
+      message += `• ${p.name} (${p.variety}) — ${price}\n`;
+    });
+    
+    ctx.reply(message + '\nДля повного замовлення зверніться до менеджера.');
+  });
+
+  bot.command('loyalty', async (ctx) => {
+    const telegramId = ctx.from.id.toString();
+    const customers = await storage.getCustomers();
+    const customer = customers.find(c => c.telegramId === telegramId);
+
+    if (!customer) {
+      return ctx.reply('Ви ще не зареєстровані в системі.');
+    }
+
+    ctx.reply(`🏆 Програма лояльності:\n\nВаш баланс: ${customer.loyaltyPoints} балів\nВсього витрачено: ${customer.totalSpent} грн\nВсього замовлень: ${customer.totalOrders}`);
   });
 
   bot.command('status', async (ctx) => {
