@@ -83,6 +83,11 @@ export async function registerRoutes(
     }
   });
 
+  // Healthcheck for Railway
+  app.get("/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+
   // Multiple files upload
   app.post("/api/upload-multiple", upload.array('images', 10), (req, res) => {
     try {
@@ -489,11 +494,6 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ error: "Failed to get top products" });
     }
-  });
-
-  // Healthcheck for Railway
-  app.get("/health", (_req, res) => {
-    res.status(200).send("OK");
   });
 
   app.get("/api/analytics/top-customers", async (req, res) => {
