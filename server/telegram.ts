@@ -1098,11 +1098,17 @@ if (bot) {
     await ctx.answerCbQuery();
     
     const products = await getCachedProducts();
-    let filtered = products.filter(p => 
-      p.plantationId === session.currentFarm &&
-      p.typeId === session.currentType &&
-      p.catalogType === catalogType
-    );
+    let filtered = products.filter(p => {
+      // For "instock" - don't check plantationId (it's null)
+      if (catalogType === 'instock') {
+        return p.typeId === session.currentType && p.catalogType === catalogType;
+      } else {
+        // For "preorder" - check plantationId
+        return p.plantationId === session.currentFarm &&
+               p.typeId === session.currentType &&
+               p.catalogType === catalogType;
+      }
+    });
     
     // Apply filters
     const filters = session.filters || {};
