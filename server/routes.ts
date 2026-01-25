@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { bot, sendBulkNotification } from "./telegram";
 import { z } from "zod";
 import { 
   insertCountrySchema, 
@@ -356,6 +357,17 @@ export async function registerRoutes(
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
+      
+      // Send notification if bot is active
+      if (order.customer?.telegramId) {
+        try {
+          const message = `🔔 Статус замовлення ${order.orderNumber} змінено на: ${status}`;
+          await bot?.telegram.sendMessage(order.customer.telegramId, message);
+        } catch (e) {
+          console.error("Failed to send telegram notification", e);
+        }
+      }
+
       res.json(order);
     } catch (error) {
       res.status(500).json({ error: "Failed to update order status" });
@@ -435,11 +447,19 @@ export async function registerRoutes(
   app.post("/api/notifications/send", async (req, res) => {
     try {
       const { message, targetGroup, language } = req.body;
-      // Mock sending - in real app would integrate with Telegram bot
       const customers = await storage.getCustomers();
       const targeted = targetGroup === "all" 
         ? customers 
         : customers.filter((c) => c.customerType === targetGroup);
+      
+      const telegramIds = targeted
+        .map(c => c.telegramId)
+        .filter((id): id is string => !!id);
+
+      if (telegramIds.length > 0) {
+        await sendBulkNotification(message, telegramIds);
+      }
+
       res.json({ sent: targeted.length, message: "Notifications sent" });
     } catch (error) {
       res.status(500).json({ error: "Failed to send notifications" });
