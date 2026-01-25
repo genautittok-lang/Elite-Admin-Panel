@@ -330,20 +330,27 @@ const countryFlags: Record<string, string> = {
 };
 
 // Helper function to show main menu
-async function showMainMenu(ctx: Context, session: UserSession) {
+async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
   const txt = getText(session);
   const firstName = ctx.from?.first_name || 'User';
   
-  await ctx.reply(
-    txt.welcome(firstName),
-    Markup.inlineKeyboard([
-      [Markup.button.callback(txt.catalog, 'catalog'), Markup.button.callback(txt.promotions, 'promotions')],
-      [Markup.button.callback(txt.favorites, 'favorites'), Markup.button.callback(txt.cart, 'cart')],
-      [Markup.button.callback(txt.history, 'history'), Markup.button.callback(txt.loyalty, 'loyalty')],
-      [Markup.button.callback(txt.manager, 'manager'), Markup.button.callback(txt.settings, 'settings')],
-      [Markup.button.callback(txt.about, 'about')]
-    ])
-  );
+  const keyboard = Markup.inlineKeyboard([
+    [Markup.button.callback(txt.catalog, 'catalog'), Markup.button.callback(txt.promotions, 'promotions')],
+    [Markup.button.callback(txt.favorites, 'favorites'), Markup.button.callback(txt.cart, 'cart')],
+    [Markup.button.callback(txt.history, 'history'), Markup.button.callback(txt.loyalty, 'loyalty')],
+    [Markup.button.callback(txt.manager, 'manager'), Markup.button.callback(txt.settings, 'settings')],
+    [Markup.button.callback(txt.about, 'about')]
+  ]);
+  
+  if (edit && 'editMessageText' in ctx) {
+    try {
+      await ctx.editMessageText(txt.welcome(firstName), keyboard);
+    } catch {
+      await ctx.reply(txt.welcome(firstName), keyboard);
+    }
+  } else {
+    await ctx.reply(txt.welcome(firstName), keyboard);
+  }
 }
 
 // Helper function to send product card
@@ -384,6 +391,9 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     [
       Markup.button.callback('❤️ Обране', `f_${shortId}`),
       Markup.button.callback('🧺 Кошик', 'cart')
+    ],
+    [
+      Markup.button.callback('🏠 Меню', 'menu')
     ]
   ]);
   
@@ -617,7 +627,7 @@ if (bot) {
     }
     
     await ctx.answerCbQuery();
-    await showMainMenu(ctx, session);
+    await showMainMenu(ctx, session, true);
   });
 
   // Main menu
@@ -625,7 +635,7 @@ if (bot) {
     const session = getSession(ctx.from!.id.toString());
     session.step = 'menu';
     await ctx.answerCbQuery();
-    await showMainMenu(ctx, session);
+    await showMainMenu(ctx, session, true);
   });
 
   // Catalog
@@ -639,23 +649,44 @@ if (bot) {
       Markup.inlineKeyboard([
         [Markup.button.callback(txt.preorder, 'catalog_preorder')],
         [Markup.button.callback(txt.instock, 'catalog_instock')],
-        [Markup.button.callback(txt.back, 'menu')]
+        [Markup.button.callback('🏠 Меню', 'menu')]
       ])
     );
   });
 
-  // Catalog sections
+  // Catalog sections - show only countries that have products
   bot.action(/^catalog_(preorder|instock)$/, async (ctx) => {
     const catalogType = ctx.match[1];
     const session = getSession(ctx.from!.id.toString());
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    const countries = await storage.getCountries();
-    const buttons = countries.map(c => [
+    // Get products for this catalog type
+    const products = await getCachedProducts();
+    const catalogProducts = products.filter(p => p.catalogType === catalogType);
+    
+    // Get unique country IDs that have products
+    const countryIdsWithProducts = Array.from(new Set(catalogProducts.map(p => p.countryId)));
+    
+    const allCountries = await storage.getCountries();
+    const countriesWithProducts = allCountries.filter(c => countryIdsWithProducts.includes(c.id));
+    
+    if (countriesWithProducts.length === 0) {
+      await ctx.editMessageText(
+        `❌ Немає товарів у розділі "${catalogType === 'preorder' ? 'Передзамовлення' : 'В наявності'}"`,
+        Markup.inlineKeyboard([
+          [Markup.button.callback(txt.back, 'catalog')],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ])
+      );
+      return;
+    }
+    
+    const buttons = countriesWithProducts.map(c => [
       Markup.button.callback(`${countryFlags[c.code] || ''} ${c.name}`, `country_${catalogType}_${c.id}`)
     ]);
     buttons.push([Markup.button.callback(txt.back, 'catalog')]);
+    buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
     
     await ctx.editMessageText(
       `${txt.country}:`,
@@ -663,7 +694,7 @@ if (bot) {
     );
   });
 
-  // Country selection
+  // Country selection - show only flower types that have products
   bot.action(/^country_(.+)_(.+)$/, async (ctx) => {
     const [catalogType, countryId] = [ctx.match[1], ctx.match[2]];
     const session = getSession(ctx.from!.id.toString());
@@ -671,11 +702,36 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    const types = await storage.getFlowerTypes();
-    const buttons = types.map(t => [
+    // Get products for this country and catalog type
+    const products = await getCachedProducts();
+    const countryProducts = products.filter(p => 
+      p.countryId === countryId && 
+      p.catalogType === catalogType
+    );
+    
+    // Get unique flower type IDs that have products
+    const typeIdsWithProducts = Array.from(new Set(countryProducts.map(p => p.typeId)));
+    
+    // Filter flower types to only show those with products
+    const allTypes = await storage.getFlowerTypes();
+    const typesWithProducts = allTypes.filter(t => typeIdsWithProducts.includes(t.id));
+    
+    if (typesWithProducts.length === 0) {
+      await ctx.editMessageText(
+        '❌ В цій країні немає товарів в наявності',
+        Markup.inlineKeyboard([
+          [Markup.button.callback(txt.back, `catalog_${catalogType}`)],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ])
+      );
+      return;
+    }
+    
+    const buttons = typesWithProducts.map(t => [
       Markup.button.callback(t.name, `t_${catalogType === 'preorder' ? 'p' : 'i'}_${countryId.substring(0, 8)}_${t.id.substring(0, 8)}`)
     ]);
     buttons.push([Markup.button.callback(txt.back, `catalog_${catalogType}`)]);
+    buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
     
     await ctx.editMessageText(
       `Тип квітів:`,
@@ -699,11 +755,18 @@ if (bot) {
     );
     
     if (filtered.length === 0) {
-      await ctx.reply(txt.noProducts);
+      await ctx.editMessageText(
+        txt.noProducts,
+        Markup.inlineKeyboard([
+          [Markup.button.callback(txt.back, `country_${catalogType}_${session.currentCountry}`)],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ])
+      );
       return;
     }
     
-    // Send product cards
+    // Delete the category message and send product cards
+    try { await ctx.deleteMessage(); } catch {}
     for (const product of filtered.slice(0, 5)) {
       await sendProductCard(ctx, product, session);
     }
@@ -766,12 +829,14 @@ if (bot) {
     await ctx.answerCbQuery();
     
     if (session.favorites.length === 0) {
-      await ctx.reply(txt.noFavorites, Markup.inlineKeyboard([
-        [Markup.button.callback(txt.back, 'menu')]
+      await ctx.editMessageText(txt.noFavorites, Markup.inlineKeyboard([
+        [Markup.button.callback('🌹 Каталог', 'catalog')],
+        [Markup.button.callback('🏠 Меню', 'menu')]
       ]));
       return;
     }
     
+    try { await ctx.deleteMessage(); } catch {}
     const products = await getCachedProducts();
     for (const productId of session.favorites) {
       const product = products.find(p => p.id === productId);
@@ -789,13 +854,13 @@ if (bot) {
     await ctx.answerCbQuery();
     
     if (session.cart.length === 0) {
-      await ctx.reply(
+      await ctx.editMessageText(
         '🧺 *Ваш кошик порожній*\n\nДодайте товари з каталогу!',
         { 
           parse_mode: 'Markdown',
           ...Markup.inlineKeyboard([
             [Markup.button.callback('🌹 Каталог', 'catalog')],
-            [Markup.button.callback('◀️ Меню', 'menu')]
+            [Markup.button.callback('🏠 Меню', 'menu')]
           ])
         }
       );
@@ -859,7 +924,7 @@ if (bot) {
     const session = getSession(ctx.from!.id.toString());
     session.cart = [];
     await ctx.answerCbQuery('Кошик очищено');
-    await showMainMenu(ctx, session);
+    await showMainMenu(ctx, session, true);
   });
 
   // Checkout - start contact details collection
@@ -1042,12 +1107,14 @@ if (bot) {
     const promos = products.filter(p => p.isPromo);
     
     if (promos.length === 0) {
-      await ctx.reply('Наразі немає акційних товарів', Markup.inlineKeyboard([
-        [Markup.button.callback(txt.back, 'menu')]
+      await ctx.editMessageText('Наразі немає акційних товарів', Markup.inlineKeyboard([
+        [Markup.button.callback('🌹 Каталог', 'catalog')],
+        [Markup.button.callback('🏠 Меню', 'menu')]
       ]));
       return;
     }
     
+    try { await ctx.deleteMessage(); } catch {}
     for (const product of promos.slice(0, 5)) {
       await sendProductCard(ctx, product, session, true);
     }
@@ -1064,11 +1131,11 @@ if (bot) {
     const customer = customers.find(c => c.telegramId === telegramId);
     
     if (!customer) {
-      await ctx.reply(
+      await ctx.editMessageText(
         '📦 *ІСТОРІЯ ЗАМОВЛЕНЬ*\n━━━━━━━━━━━━━━━━━━\n\n_У вас ще немає замовлень_\n\nОформіть перше замовлення!',
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
           [Markup.button.callback('🌹 Каталог', 'catalog')],
-          [Markup.button.callback('◀️ Меню', 'menu')]
+          [Markup.button.callback('🏠 Меню', 'menu')]
         ])}
       );
       return;
@@ -1077,11 +1144,11 @@ if (bot) {
     const orders = await storage.getCustomerOrders(customer.id);
     
     if (orders.length === 0) {
-      await ctx.reply(
+      await ctx.editMessageText(
         '📦 *ІСТОРІЯ ЗАМОВЛЕНЬ*\n━━━━━━━━━━━━━━━━━━\n\n_У вас ще немає замовлень_\n\nОформіть перше замовлення!',
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
           [Markup.button.callback('🌹 Каталог', 'catalog')],
-          [Markup.button.callback('◀️ Меню', 'menu')]
+          [Markup.button.callback('🏠 Меню', 'menu')]
         ])}
       );
       return;
@@ -1119,9 +1186,9 @@ if (bot) {
       message += `   📌 _${status}_\n\n`;
     }
     
-    await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+    await ctx.editMessageText(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
       [Markup.button.callback('🌹 Каталог', 'catalog')],
-      [Markup.button.callback('◀️ Меню', 'menu')]
+      [Markup.button.callback('🏠 Меню', 'menu')]
     ])});
   });
 
@@ -1131,8 +1198,8 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    await ctx.reply(txt.managerContact, Markup.inlineKeyboard([
-      [Markup.button.callback(txt.back, 'menu')]
+    await ctx.editMessageText(txt.managerContact, Markup.inlineKeyboard([
+      [Markup.button.callback('🏠 Меню', 'menu')]
     ]));
   });
 
@@ -1142,8 +1209,8 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    await ctx.reply(txt.aboutText, Markup.inlineKeyboard([
-      [Markup.button.callback(txt.back, 'menu')]
+    await ctx.editMessageText(txt.aboutText, Markup.inlineKeyboard([
+      [Markup.button.callback('🏠 Меню', 'menu')]
     ]));
   });
 
@@ -1160,8 +1227,8 @@ if (bot) {
     const points = customer?.loyaltyPoints || 0;
     const orders = customer?.totalOrders || 0;
     
-    await ctx.reply(txt.loyaltyInfo(points, orders), Markup.inlineKeyboard([
-      [Markup.button.callback(txt.back, 'menu')]
+    await ctx.editMessageText(txt.loyaltyInfo(points, orders), Markup.inlineKeyboard([
+      [Markup.button.callback('🏠 Меню', 'menu')]
     ]));
   });
 
@@ -1171,13 +1238,13 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    await ctx.reply(
+    await ctx.editMessageText(
       txt.settingsMenu,
       Markup.inlineKeyboard([
         [Markup.button.callback(txt.changeLanguage, 'change_lang')],
         [Markup.button.callback(txt.changeCity, 'change_city')],
         [Markup.button.callback(txt.changeType, 'change_type')],
-        [Markup.button.callback(txt.back, 'menu')]
+        [Markup.button.callback('🏠 Меню', 'menu')]
       ])
     );
   });
@@ -1199,7 +1266,7 @@ if (bot) {
     const session = getSession(ctx.from!.id.toString());
     session.language = lang;
     await ctx.answerCbQuery('Мову змінено!');
-    await showMainMenu(ctx, session);
+    await showMainMenu(ctx, session, true);
   });
 
   bot.action('change_city', async (ctx) => {
@@ -1228,7 +1295,7 @@ if (bot) {
     const session = getSession(ctx.from!.id.toString());
     session.customerType = type;
     await ctx.answerCbQuery('Тип змінено!');
-    await showMainMenu(ctx, session);
+    await showMainMenu(ctx, session, true);
   });
 
   // Launch bot
