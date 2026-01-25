@@ -80,6 +80,7 @@ export const customers = pgTable("customers", {
   loyaltyPoints: integer("loyalty_points").default(0),
   totalOrders: integer("total_orders").default(0),
   totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).default("0"),
+  nextOrderDiscount: decimal("next_order_discount", { precision: 10, scale: 2 }).default("0"),
   isBlocked: boolean("is_blocked").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });

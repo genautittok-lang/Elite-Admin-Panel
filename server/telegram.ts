@@ -678,6 +678,7 @@ if (bot) {
   bot.action('cart', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
     const txt = getText(session);
+    const telegramId = ctx.from!.id.toString();
     await ctx.answerCbQuery();
     
     if (session.cart.length === 0) {
@@ -693,6 +694,11 @@ if (bot) {
       );
       return;
     }
+    
+    // Check for discount
+    const customers = await storage.getCustomers();
+    const customer = customers.find(c => c.telegramId === telegramId);
+    const availableDiscount = parseFloat(customer?.nextOrderDiscount as any || '0');
     
     const products = await storage.getProducts();
     let total = 0;
@@ -720,6 +726,11 @@ if (bot) {
     
     if (session.customerType === 'wholesale') {
       message += `\n🏷️ _Оптова знижка -5% застосована_`;
+    }
+    
+    // Show available discount
+    if (availableDiscount > 0) {
+      message += `\n\n🎁 *Ваша знижка: -${availableDiscount.toLocaleString('uk-UA')} грн*\n_Буде застосована при оформленні_`;
     }
     
     if (total < 5000) {
@@ -782,6 +793,14 @@ if (bot) {
       });
     }
     
+    // Apply existing discount (from previous 10th order)
+    let discountApplied = 0;
+    const existingDiscount = parseFloat((customer?.nextOrderDiscount as any) || '0');
+    if (existingDiscount > 0 && total > existingDiscount) {
+      discountApplied = existingDiscount;
+      total -= discountApplied;
+    }
+    
     // Create order with beautiful number
     const orderNumber = `FL-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
@@ -796,7 +815,7 @@ if (bot) {
       customerId: customer.id,
       status: 'new',
       totalUah: total.toString(),
-      comment: `${session.city || ''} | ${itemsDescription}`
+      comment: `${session.city || ''} | ${itemsDescription}${discountApplied > 0 ? ' | Знижка -' + discountApplied + ' грн' : ''}`
     });
     
     // Persist order items
@@ -816,18 +835,34 @@ if (bot) {
     const newPoints = (customer.loyaltyPoints || 0) + pointsEarned;
     const newTotalOrders = (customer.totalOrders || 0) + 1;
     
+    // Discount logic:
+    // - If discount was applied this order, reset to 0
+    // - If this is the 10th order (and no discount was just applied), set discount for next order
+    let newNextOrderDiscount = '0';
+    if (discountApplied > 0) {
+      // Discount was used, reset to 0
+      newNextOrderDiscount = '0';
+    } else if (newTotalOrders % 10 === 0) {
+      // This is 10th, 20th, 30th order - next order gets -1000 UAH
+      newNextOrderDiscount = '1000';
+    }
+    
     await storage.updateCustomer(customer.id, {
       totalSpent: newTotalSpent.toString(),
       loyaltyPoints: newPoints,
-      totalOrders: newTotalOrders
+      totalOrders: newTotalOrders,
+      nextOrderDiscount: newNextOrderDiscount
     } as any);
     
-    // Check for 11th order discount (every 11th order gets -1000 UAH)
+    // Build bonus messages
     let bonusMessage = '';
-    if (newTotalOrders % 11 === 0) {
-      bonusMessage = '\n\n🎁 *Вітаємо! Це ваше 11-те замовлення!*\n_Знижка 1000 грн на наступне замовлення!_';
+    if (discountApplied > 0) {
+      bonusMessage += `\n\n✅ *Застосовано знижку:* -${discountApplied.toLocaleString('uk-UA')} грн`;
+    }
+    if (newNextOrderDiscount === '1000') {
+      bonusMessage += '\n\n🎁 *Вітаємо! Наступне замовлення зі знижкою 1000 грн!*';
     } else if (newPoints >= 100) {
-      bonusMessage = '\n\n🎁 *Вітаємо! Ви накопичили 100+ балів!*\n_Вам доступний подарунок!_';
+      bonusMessage += '\n\n🎁 *Вітаємо! Ви накопичили 100+ балів!*\n_Вам доступний подарунок!_';
     }
     
     // Clear cart
