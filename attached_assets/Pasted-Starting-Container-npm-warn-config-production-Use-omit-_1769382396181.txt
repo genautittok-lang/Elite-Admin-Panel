@@ -1,0 +1,97 @@
+Starting Container
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[✓] Pulling schema from database...
+Is countries table created or renamed from another table?
+❯ + countries                            create table
+  ~ sessions › countries                 rename table
+  ~ pending_auth › countries             rename table
+  ~ mastra_traces › countries            rename table
+  ~ mastra_workflow_snapshot › countries rename table
+  ~ mastra_evals › countries             rename table
+  ~ mastra_threads › countries           rename table
+  ~ mastra_resources › countries         rename table
+  ~ mastra_ai_spans › countries          rename table
+  ~ mastra_messages › countries          rename table
+  ~ account_groups › countries           rename table
+  ~ accounts › countries                 rename table
+  ~ recipients › countries               rename table
+  ~ mastra_scorers › countries           rename table
+  ~ logs › countries                     rename table
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+Telegram: checking token... Token found
+Telegram: bot instance created: Yes
+Telegram: scheduling bot launch...
+Setting up static file serving...
+Looking for build directory at: /app/dist/public
+Build directory found!
+Environment PORT: 8080, using port: 8080
+Environment NODE_ENV: production
+11:06:01 PM [express] serving on port 8080 (Ready for healthcheck)
+Server is listening on 0.0.0.0:8080
+Unhandled Rejection at: Promise {
+  <rejected> error: relation "settings" does not exist
+      at /app/dist/index.cjs:68:13326
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async /app/dist/index.cjs:76:31378
+      at async gm.getSetting (/app/dist/index.cjs:76:107275)
+      at async HS (/app/dist/index.cjs:76:110931) {
+    length: 107,
+    severity: 'ERROR',
+    code: '42P01',
+    detail: undefined,
+    hint: undefined,
+    position: '49',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '1449',
+    routine: 'parserOpenTable'
+  }
+} reason: error: relation "settings" does not exist
+    at /app/dist/index.cjs:68:13326
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/dist/index.cjs:76:31378
+    at async gm.getSetting (/app/dist/index.cjs:76:107275)
+    at async HS (/app/dist/index.cjs:76:110931) {
+  length: 107,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '49',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Telegram: attempting to launch bot...

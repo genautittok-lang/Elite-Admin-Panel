@@ -1,1 +1,1 @@
-web: npm run db:push && npm run start
+web: npx drizzle-kit push --force && npm run start
