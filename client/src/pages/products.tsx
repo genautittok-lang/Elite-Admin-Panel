@@ -122,20 +122,22 @@ export default function Products() {
     },
   });
 
-  // Auto-calculate UAH price when USD price changes
+  // Auto-calculate UAH price when USD price changes (only for new products or when USD changes)
   const watchPriceUsd = form.watch("priceUsd");
   const watchCatalogType = form.watch("catalogType");
+  const [lastUsdValue, setLastUsdValue] = useState<string | undefined>(undefined);
   
   useEffect(() => {
-    // Only auto-calculate for preorder items (USD based)
-    if (watchCatalogType === "preorder" && watchPriceUsd) {
+    // Only auto-calculate for preorder items when USD price actually changes
+    if (watchCatalogType === "preorder" && watchPriceUsd && watchPriceUsd !== lastUsdValue) {
       const usdPrice = parseFloat(watchPriceUsd);
       if (!isNaN(usdPrice) && usdPrice > 0) {
         const uahPrice = (usdPrice * exchangeRate).toFixed(2);
         form.setValue("priceUah", uahPrice);
+        setLastUsdValue(watchPriceUsd);
       }
     }
-  }, [watchPriceUsd, exchangeRate, watchCatalogType, form]);
+  }, [watchPriceUsd, exchangeRate, watchCatalogType, form, lastUsdValue]);
 
   const createMutation = useMutation({
     mutationFn: async (data: ProductFormValues) => {

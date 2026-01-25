@@ -283,13 +283,26 @@ export async function registerRoutes(
 
   app.patch("/api/products/:id", async (req, res) => {
     try {
-      const product = await storage.updateProduct(req.params.id, req.body);
+      // Clean up data - handle empty string values
+      const updateData = { ...req.body };
+      if (updateData.priceUsd === "" || updateData.priceUsd === undefined) {
+        updateData.priceUsd = null;
+      }
+      if (updateData.priceUah === "" || updateData.priceUah === "0.00") {
+        delete updateData.priceUah; // Don't update if empty/zero
+      }
+      if (updateData.plantationId === "" || updateData.plantationId === undefined) {
+        updateData.plantationId = null;
+      }
+      
+      const product = await storage.updateProduct(req.params.id, updateData);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });
       }
       res.json(product);
     } catch (error) {
-      res.status(500).json({ error: "Failed to update product" });
+      console.error("Product update error:", error);
+      res.status(500).json({ error: "Failed to update product", details: String(error) });
     }
   });
 
