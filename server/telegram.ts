@@ -3,11 +3,13 @@ import { storage } from './storage';
 import type { Product, Customer, Country, FlowerType } from '@shared/schema';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
+console.log("Telegram: checking token...", token ? "Token found" : "Token missing");
 if (!token) {
   console.warn("TELEGRAM_BOT_TOKEN is not set. Telegram bot will not start.");
 }
 
 export const bot = token ? new Telegraf(token) : null;
+console.log("Telegram: bot instance created:", bot ? "Yes" : "No");
 
 // User session storage (in-memory with weak references or simple cleanup)
 interface UserSession {
@@ -939,6 +941,7 @@ if (bot) {
   });
 
   // Launch bot
+  console.log("Telegram: attempting to launch bot...");
   bot.launch().then(() => {
     console.log('Telegram bot started successfully');
   }).catch((err) => {
