@@ -113,8 +113,6 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "8080", 10);
-  console.log(`Environment PORT: ${process.env.PORT}, using port: ${port}`);
-  console.log(`Environment NODE_ENV: ${process.env.NODE_ENV}`);
   
   httpServer.listen(
     {
@@ -122,8 +120,15 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
     },
     () => {
-      log(`serving on port ${port} (Ready for healthcheck)`);
-      console.log(`Server is listening on 0.0.0.0:${port}`);
+      console.log('');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║              🌸 FlowerB2B Server Started 🌸                ║');
+      console.log('╠════════════════════════════════════════════════════════════╣');
+      console.log(`║  🌐 Port: ${port}                                            ║`);
+      console.log(`║  🔧 Mode: ${process.env.NODE_ENV || 'development'}                                   ║`);
+      console.log('║  ✅ Status: Ready                                          ║');
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('');
     },
   );
 })();

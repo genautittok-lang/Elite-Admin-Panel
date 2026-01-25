@@ -5,13 +5,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-console.log("Telegram: checking token...", token ? "Token found" : "Token missing");
+
 if (!token) {
-  console.warn("TELEGRAM_BOT_TOKEN is not set. Telegram bot will not start.");
+  console.log('');
+  console.log('⚠️  TELEGRAM_BOT_TOKEN not set - bot disabled');
+  console.log('');
 }
 
 export const bot = token ? new Telegraf(token) : null;
-console.log("Telegram: bot instance created:", bot ? "Yes" : "No");
 
 // User session storage (in-memory with weak references or simple cleanup)
 interface UserSession {
@@ -1699,19 +1700,22 @@ if (bot) {
 
   // Handle bot errors gracefully
   bot.catch((err: any, ctx: any) => {
-    console.error('Telegram bot error:', err);
+    console.error('❌ Bot error:', err.message || err);
   });
 
   // Launch bot with delay to ensure server is ready first
-  console.log("Telegram: scheduling bot launch...");
   setTimeout(async () => {
     try {
-      console.log("Telegram: attempting to launch bot...");
       await bot.launch({ dropPendingUpdates: true });
-      console.log('Telegram bot started successfully');
-    } catch (err) {
-      console.error('Failed to start Telegram bot:', err);
-      // Don't crash the process - just log the error
+      console.log('');
+      console.log('╔════════════════════════════════════════════════════════════╗');
+      console.log('║              🤖 Telegram Bot Started 🤖                    ║');
+      console.log('╚════════════════════════════════════════════════════════════╝');
+      console.log('');
+    } catch (err: any) {
+      console.error('');
+      console.error('❌ Failed to start Telegram bot:', err.message || err);
+      console.error('');
     }
   }, 5000);
 

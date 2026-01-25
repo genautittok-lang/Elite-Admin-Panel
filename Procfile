@@ -1,1 +1,1 @@
-web: npx drizzle-kit push --force && npm run start
+web: node scripts/init-db.js && npm run start
