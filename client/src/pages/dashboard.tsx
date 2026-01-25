@@ -167,7 +167,7 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="gap-1">
             <Flower2 className="h-3 w-3" />
-            FlowerB2B
+            KVITKA opt
           </Badge>
         </div>
       </div>

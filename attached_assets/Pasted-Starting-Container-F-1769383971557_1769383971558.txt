@@ -1,0 +1,70 @@
+Starting Container
+╔════════════════════════════════════════════════════════════╗
+║           🌸 FlowerB2B Database Check 🌸                    ║
+╚════════════════════════════════════════════════════════════╝
+📡 Connecting to database...
+✅ Connected successfully!
+📦 Tables already exist - skipping initialization
+╔════════════════════════════════════════════════════════════╗
+║              ✅ Database ready!                            ║
+╚════════════════════════════════════════════════════════════╝
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+Setting up static file serving...
+Looking for build directory at: /app/dist/public
+Build directory found!
+╔════════════════════════════════════════════════════════════╗
+║              🌸 FlowerB2B Server Started 🌸                ║
+╠════════════════════════════════════════════════════════════╣
+║  🌐 Port: 8080                                            ║
+║  🔧 Mode: production                                   ║
+║  ✅ Status: Ready                                          ║
+╚════════════════════════════════════════════════════════════╝
+11:25:59 PM [express] GET /api/orders 304 in 28ms :: []
+11:25:59 PM [express] GET /api/orders/recent 304 in 69ms :: []
+11:25:59 PM [express] GET /api/analytics/top-customers 304 in 71ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","name":"Bogdan","shopName":"","totalOrders":0,"totalSpent":0}]
+11:25:59 PM [express] GET /api/analytics/top-products 304 in 75ms :: []
+11:25:59 PM [express] GET /api/dashboard/stats 304 in 83ms :: {"totalOrders":0,"totalRevenue":0,"totalCustomers":1,"totalProducts":0,"newOrdersToday":0,"revenueToday":0,"ordersChange":0,"revenueChange":0}
+11:26:07 PM [express] GET /api/customers 304 in 6ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":false,"createdAt":"2026-01-25T23:15:54.738Z"}]
+11:26:11 PM [express] GET /api/customers/1b71aa1b-18a6-4241-9979-aa2d3f590e2e/orders 200 in 7ms :: []
+11:27:16 PM [express] GET /api/orders/recent 200 in 183ms :: []
+11:27:16 PM [express] GET /api/analytics/top-customers 200 in 183ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","name":"Bogdan","shopName":"","totalOrders":0,"totalSpent":0}]
+11:27:16 PM [express] GET /api/analytics/top-products 200 in 188ms :: []
+11:27:16 PM [express] GET /api/dashboard/stats 200 in 201ms :: {"totalOrders":0,"totalRevenue":0,"totalCustomers":1,"totalProducts":0,"newOrdersToday":0,"revenueToday":0,"ordersChange":0,"revenueChange":0}
+11:27:16 PM [express] GET /api/orders 200 in 210ms :: []
+11:27:28 PM [express] GET /api/orders 304 in 218ms :: []
+11:27:31 PM [express] GET /api/dashboard/stats 304 in 17ms :: {"totalOrders":0,"totalRevenue":0,"totalCustomers":1,"totalProducts":0,"newOrdersToday":0,"revenueToday":0,"ordersChange":0,"revenueChange":0}
+11:27:31 PM [express] GET /api/orders/recent 304 in 187ms :: []
+11:27:32 PM [express] GET /api/analytics/top-customers 304 in 185ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","name":"Bogdan","shopName":"","totalOrders":0,"totalSpent":0}]
+11:27:32 PM [express] GET /api/analytics/top-products 304 in 193ms :: []
+11:27:41 PM [express] GET /api/customers 200 in 7ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":false,"createdAt":"2026-01-25T23:15:54.738Z"}]
+11:27:58 PM [express] GET /api/orders 304 in 25ms :: []
+11:28:03 PM [express] GET /api/analytics/sales-trend/month 200 in 2ms
+11:28:03 PM [express] GET /api/analytics/sales-by-country 200 in 18ms :: []
+11:28:15 PM [express] GET /api/countries 200 in 183ms :: [{"id":"91ea812b-3d9b-4970-89e2-dcd166d94ab0","code":"EC","name":"Еквадор","flag":"🇪🇨"},{"id":"0988706b-45a6-4716-8e99-c7b765219c6b","code":"CO","name":"Колумбія","flag":"🇨🇴"},{"id":"bfb891bb-9d5d-42e5-9ae9-d2929e2aa72e","code":"KE","name":"Кенія","flag":"🇰🇪"},{"id":"547cc9a9-05a0-474e-bbea-ff57bac67711","code":"NL","name":"Нідерланди","flag":"🇳🇱"},{"id":"3bc13b8c-9ba5-4b61-a8f4-843272aca042","code":"UA","name":"Україна","flag":"🇺🇦"}]
+11:28:15 PM [express] GET /api/plantations 200 in 180ms :: []
+11:28:15 PM [express] GET /api/flower-types 200 in 183ms :: [{"id":"47486f8d-63c4-4876-a0de-cffc896846f4","name":"Троянда","category":"single"},{"id":"569ae031-1128-4619-b098-bbc2929ab619","name":"Троянда кущова","category":"spray"},{"id":"952aae0c-a9e3-4fef-8058-54e8b2be4200","name":"Тюльпан","category":"single"},{"id":"f59a2d72-b974-41ce-84ca-396c57b9cb19","name":"Хризантема","category":"spray"},{"id":"147aed21-df90-4922-b256-334cd23e41d4","name":"Гербера","category":"single"},{"id":"60fc1994-23e5-4843-839d-33f1b7b6cf36","name":"Еустома","category":"single"},{"id":"a5c48ea5-05e5-4a06-9019-50461d876aaf","name":"Гвоздика","category":"single"},{"id":"d953d191-1f9f-4f55-bd36-f020ed703266","name":"Піон","category":"single"}]
+11:28:15 PM [express] GET /api/products 200 in 213ms :: []
+11:28:27 PM [express] GET /api/analytics/sales-trend/month 304 in 1ms
+11:28:28 PM [express] GET /api/orders 304 in 208ms :: []
+11:28:43 PM [express] GET /api/products 200 in 200ms :: []
+11:28:43 PM [express] GET /api/orders 200 in 206ms :: []
+11:28:55 PM [express] GET /api/settings 200 in 190ms :: [{"id":"d8682e90-cbe1-44ce-8f8d-684176b9f59d","key":"usd_rate","value":"41.5","description":"Курс USD до UAH"},{"id":"7fecaaa4-341b-4661-9fee-9fa61ef73061","key":"min_order","value":"5000","description":"Мінімальна сума замовлення в грн"},{"id":"389e60d8-f945-496c-a43d-40acb60a17aa","key":"loyalty_threshold","value":"1000","description":"Сума покупки для 1 бала лояльності"},{"id":"69982fce-09e2-4022-beff-6a004c23b82f","key":"loyalty_gift_points","value":"100","description":"Кількість балів для подарунку"},{"id":"46a04c30-6253-4e60-90c4-c2ae3597ea44","key":"discount_orders_count","value":"10","description":"Кількість замовлень для знижки"},{"id":"2ad82af1-c306-483e-a544-9c18eefa4331","key":"discount_amount","value":"1000","description":"Сума знижки в грн"}]
+11:29:02 PM [express] POST /api/settings/fetch-exchange-rate 200 in 16ms :: {"rate":"41.50"}
+11:29:13 PM [express] GET /api/orders 304 in 208ms :: []
+11:30:05 PM [express] GET /api/orders 304 in 27ms :: []
+11:31:00 PM [express] GET /api/analytics/top-customers 304 in 194ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","name":"Bogdan","shopName":"","totalOrders":0,"totalSpent":0}]
+11:31:00 PM [express] GET /api/analytics/top-products 304 in 203ms :: []
+11:31:00 PM [express] GET /api/orders 304 in 218ms :: []
+11:30:59 PM [express] GET /api/dashboard/stats 304 in 20ms :: {"totalOrders":0,"totalRevenue":0,"totalCustomers":1,"totalProducts":0,"newOrdersToday":0,"revenueToday":0,"ordersChange":0,"revenueChange":0}
+11:31:00 PM [express] GET /api/orders/recent 304 in 196ms :: []
+11:31:07 PM [express] GET /api/flower-types 304 in 6ms :: [{"id":"47486f8d-63c4-4876-a0de-cffc896846f4","name":"Троянда","category":"single"},{"id":"569ae031-1128-4619-b098-bbc2929ab619","name":"Троянда кущова","category":"spray"},{"id":"952aae0c-a9e3-4fef-8058-54e8b2be4200","name":"Тюльпан","category":"single"},{"id":"f59a2d72-b974-41ce-84ca-396c57b9cb19","name":"Хризантема","category":"spray"},{"id":"147aed21-df90-4922-b256-334cd23e41d4","name":"Гербера","category":"single"},{"id":"60fc1994-23e5-4843-839d-33f1b7b6cf36","name":"Еустома","category":"single"},{"id":"a5c48ea5-05e5-4a06-9019-50461d876aaf","name":"Гвоздика","category":"single"},{"id":"d953d191-1f9f-4f55-bd36-f020ed703266","name":"Піон","category":"single"}]
+11:31:07 PM [express] GET /api/plantations 304 in 7ms :: []
+11:31:07 PM [express] GET /api/countries 304 in 6ms :: [{"id":"91ea812b-3d9b-4970-89e2-dcd166d94ab0","code":"EC","name":"Еквадор","flag":"🇪🇨"},{"id":"0988706b-45a6-4716-8e99-c7b765219c6b","code":"CO","name":"Колумбія","flag":"🇨🇴"},{"id":"bfb891bb-9d5d-42e5-9ae9-d2929e2aa72e","code":"KE","name":"Кенія","flag":"🇰🇪"},{"id":"547cc9a9-05a0-474e-bbea-ff57bac67711","code":"NL","name":"Нідерланди","flag":"🇳🇱"},{"id":"3bc13b8c-9ba5-4b61-a8f4-843272aca042","code":"UA","name":"Україна","flag":"🇺🇦"}]
+11:31:07 PM [express] GET /api/products 304 in 25ms :: []
+11:31:30 PM [express] GET /api/orders 304 in 210ms :: []
+11:32:00 PM [express] GET /api/orders 304 in 28ms :: []
+11:32:12 PM [express] POST /api/upload 200 in 2ms
+11:32:16 PM [express] POST /api/upload 200 in 1ms
+11:32:17 PM [express] POST /api/upload 200 in 1ms

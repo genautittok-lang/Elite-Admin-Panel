@@ -177,8 +177,8 @@ const t = {
     price: 'Ціна',
     country: 'Країна',
     plantation: 'Плантація',
-    managerContact: '📞 Зв\'яжіться з нашим менеджером:\n\nТелефон: +380 XX XXX XX XX\nEmail: manager@flowerb2b.com',
-    aboutText: 'ℹ️ FlowerB2B - оптовий продаж квітів\n\n🌸 Працюємо з 2010 року\n🌍 Імпорт з 6 країн\n🚚 Доставка по Україні\n💐 Понад 500 сортів',
+    managerContact: '📞 Зв\'яжіться з нашим менеджером:\n\nТелефон: +380 XX XXX XX XX\nEmail: manager@kvitkaopt.com',
+    aboutText: 'ℹ️ KVITKA opt - оптовий продаж квітів\n\n🌸 Працюємо з 2010 року\n🌍 Імпорт з 6 країн\n🚚 Доставка по Україні\n💐 Понад 500 сортів',
     loyaltyInfo: (points: number, orders: number) => {
       let msg = `🏆 Програма лояльності:\n\n💰 Ваш баланс: ${points} балів\n📦 Замовлень: ${orders}\n\n`;
       msg += `📌 Правила:\n• 1 бал = 1000 грн покупок\n• 100 балів = подарунок\n• Кожне 11-те замовлення: -1000 грн\n\n`;
@@ -240,8 +240,8 @@ const t = {
     price: 'Price',
     country: 'Country',
     plantation: 'Plantation',
-    managerContact: '📞 Contact our manager:\n\nPhone: +380 XX XXX XX XX\nEmail: manager@flowerb2b.com',
-    aboutText: 'ℹ️ FlowerB2B - Wholesale Flowers\n\n🌸 Since 2010\n🌍 Import from 6 countries\n🚚 Delivery across Ukraine\n💐 Over 500 varieties',
+    managerContact: '📞 Contact our manager:\n\nPhone: +380 XX XXX XX XX\nEmail: manager@kvitkaopt.com',
+    aboutText: 'ℹ️ KVITKA opt - Wholesale Flowers\n\n🌸 Since 2010\n🌍 Import from 6 countries\n🚚 Delivery across Ukraine\n💐 Over 500 varieties',
     loyaltyInfo: (points: number, orders: number) => {
       let msg = `🏆 Loyalty Program:\n\n💰 Balance: ${points} points\n📦 Orders: ${orders}\n\n`;
       msg += `📌 Rules:\n• 1 point = 1000 UAH spent\n• 100 points = gift\n• Every 11th order: -1000 UAH\n\n`;
@@ -303,8 +303,8 @@ const t = {
     price: 'Цена',
     country: 'Страна',
     plantation: 'Плантация',
-    managerContact: '📞 Свяжитесь с нашим менеджером:\n\nТелефон: +380 XX XXX XX XX\nEmail: manager@flowerb2b.com',
-    aboutText: 'ℹ️ FlowerB2B - оптовая продажа цветов\n\n🌸 Работаем с 2010 года\n🌍 Импорт из 6 стран\n🚚 Доставка по Украине\n💐 Более 500 сортов',
+    managerContact: '📞 Свяжитесь с нашим менеджером:\n\nТелефон: +380 XX XXX XX XX\nEmail: manager@kvitkaopt.com',
+    aboutText: 'ℹ️ KVITKA opt - оптовая продажа цветов\n\n🌸 Работаем с 2010 года\n🌍 Импорт из 6 стран\n🚚 Доставка по Украине\n💐 Более 500 сортов',
     loyaltyInfo: (points: number, orders: number) => {
       let msg = `🏆 Программа лояльности:\n\n💰 Ваш баланс: ${points} баллов\n📦 Заказов: ${orders}\n\n`;
       msg += `📌 Правила:\n• 1 балл = 1000 грн покупок\n• 100 баллов = подарок\n• Каждый 11-й заказ: -1000 грн\n\n`;

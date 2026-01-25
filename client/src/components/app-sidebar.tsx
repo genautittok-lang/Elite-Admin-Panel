@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Badge } from "@/components/ui/badge";
 import type { Order } from "@shared/schema";
+import kvitkaLogo from "@/assets/kvitka-logo.jpg";
 
 const mainMenuItems = [
   { title: "Дашборд", url: "/", icon: LayoutDashboard },
@@ -63,11 +64,13 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <Flower2 className="w-6 h-6 text-primary-foreground" />
-          </div>
+          <img 
+            src={kvitkaLogo} 
+            alt="KVITKA opt" 
+            className="w-10 h-10 rounded-lg object-cover"
+          />
           <div>
-            <h1 className="font-semibold text-lg">FlowerB2B</h1>
+            <h1 className="font-semibold text-lg">KVITKA opt</h1>
             <p className="text-xs text-muted-foreground">Адмін панель</p>
           </div>
         </Link>
@@ -150,7 +153,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="text-xs text-muted-foreground text-center">
-          FlowerB2B v1.0
+          KVITKA opt v1.0
         </div>
       </SidebarFooter>
     </Sidebar>

@@ -122,7 +122,7 @@ app.use((req, res, next) => {
     () => {
       console.log('');
       console.log('╔════════════════════════════════════════════════════════════╗');
-      console.log('║              🌸 FlowerB2B Server Started 🌸                ║');
+      console.log('║              🌸 KVITKA opt Server Started 🌸               ║');
       console.log('╠════════════════════════════════════════════════════════════╣');
       console.log(`║  🌐 Port: ${port}                                            ║`);
       console.log(`║  🔧 Mode: ${process.env.NODE_ENV || 'development'}                                   ║`);

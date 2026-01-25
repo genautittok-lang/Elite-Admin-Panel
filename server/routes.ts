@@ -67,6 +67,20 @@ export async function registerRoutes(
 ): Promise<Server> {
   // Serve uploaded files (in development; production handled by static.ts)
 
+  // Single file upload
+  app.post("/api/upload", upload.single('image'), (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      const url = `/uploads/${file.filename}`;
+      res.json({ url });
+    } catch (error) {
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
   // Multiple files upload
   app.post("/api/upload-multiple", upload.array('images', 10), (req, res) => {
     try {
