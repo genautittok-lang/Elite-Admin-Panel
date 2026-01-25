@@ -371,10 +371,10 @@ export default function Products() {
                     name="color"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Колір</FormLabel>
+                        <FormLabel>Колір (можна вказати декілька через кому)</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Червоний" 
+                            placeholder="Червоний, Білий, Рожевий" 
                             {...field} 
                             data-testid="input-product-color"
                           />

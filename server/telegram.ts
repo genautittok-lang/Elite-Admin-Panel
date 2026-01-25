@@ -487,6 +487,9 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   message += `├ ${txt.color}: ${product.color}\n`;
   message += `└ ${statusMap[product.status] || product.status}\n\n`;
   message += `💰 *${price.toLocaleString('uk-UA')} грн* / ${product.packSize || 25} ${txt.stem}`;
+  if (product.isPromo) {
+    message += `\n🔥 *АКЦІЙНА ЦІНА!*`;
+  }
   
   if (session.customerType === 'wholesale') {
     message += `\n🏷️ _Ваша знижка: -5%_`;
@@ -499,7 +502,7 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
       Markup.button.callback('📦 +10', `c_10_${shortId}`)
     ],
     [
-      Markup.button.callback('❤️ Обране', `f_${shortId}`),
+      Markup.button.callback('➕ Додати ще', `c_1_${shortId}`),
       Markup.button.callback('🧺 Кошик', 'cart')
     ],
     [
