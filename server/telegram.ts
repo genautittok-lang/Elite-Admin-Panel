@@ -1,6 +1,8 @@
 import { Telegraf, Markup, Context } from 'telegraf';
 import { storage } from './storage';
 import type { Product, Customer, Country, FlowerType } from '@shared/schema';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 console.log("Telegram: checking token...", token ? "Token found" : "Token missing");
@@ -342,7 +344,7 @@ async function showMainMenu(ctx: Context, session: UserSession) {
 // Helper function to send product card
 async function sendProductCard(ctx: Context, product: Product, session: UserSession, isPromo = false) {
   const txt = getText(session);
-  const price = calculatePrice(product, session);
+  const price = await calculatePriceAsync(product, session);
   
   const statusMap: Record<string, string> = {
     available: txt.available,
@@ -350,38 +352,63 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     expected: txt.expected
   };
   
-  let message = `${isPromo ? '🔥 АКЦІЯ! ' : ''}${product.name}\n`;
-  message += `📍 ${product.variety}\n\n`;
-  message += `${txt.class}: ${product.flowerClass}\n`;
-  message += `${txt.height}: ${product.height} см\n`;
-  message += `${txt.color}: ${product.color}\n`;
-  message += `${statusMap[product.status] || product.status}\n\n`;
-  message += `💰 ${txt.price}: ${price.toLocaleString()} грн/${txt.stem}`;
+  // Short product ID for callbacks (first 8 chars of UUID)
+  const shortId = product.id.substring(0, 8);
+  
+  // Build beautiful product card
+  let message = '';
+  if (isPromo) message += '🔥 *АКЦІЯ!*\n';
+  message += `*${product.name}*\n`;
+  message += `_${product.variety}_\n\n`;
+  message += `├ ${txt.class}: ${product.flowerClass}\n`;
+  message += `├ ${txt.height}: ${product.height} см\n`;
+  message += `├ ${txt.color}: ${product.color}\n`;
+  message += `└ ${statusMap[product.status] || product.status}\n\n`;
+  message += `💰 *${price.toLocaleString('uk-UA')} грн* / ${product.packSize || 25} ${txt.stem}`;
+  
+  if (session.customerType === 'wholesale') {
+    message += `\n🏷️ _Ваша знижка: -5%_`;
+  }
   
   const buttons = Markup.inlineKeyboard([
     [
-      Markup.button.callback('+25', `add_cart_25_${product.id}`),
-      Markup.button.callback('+50', `add_cart_50_${product.id}`),
-      Markup.button.callback('+100', `add_cart_100_${product.id}`)
+      Markup.button.callback('📦 +1', `c_1_${shortId}`),
+      Markup.button.callback('📦 +5', `c_5_${shortId}`),
+      Markup.button.callback('📦 +10', `c_10_${shortId}`)
     ],
     [
-      Markup.button.callback('+1 box', `add_cart_${product.packSize || 25}_${product.id}`),
-      Markup.button.callback('❤️', `favorite_${product.id}`)
+      Markup.button.callback('❤️ Обране', `f_${shortId}`),
+      Markup.button.callback('🧺 Кошик', 'cart')
     ]
   ]);
   
   // Send photo if available
   if (product.images && product.images.length > 0) {
+    const imagePath = product.images[0];
     try {
-      await ctx.replyWithPhoto(product.images[0], {
+      // Check if it's a local file path
+      if (imagePath.startsWith('attached_assets/') || imagePath.startsWith('./')) {
+        const fullPath = path.resolve(process.cwd(), imagePath);
+        if (fs.existsSync(fullPath)) {
+          await ctx.replyWithPhoto(
+            { source: fullPath },
+            { caption: message, parse_mode: 'Markdown', reply_markup: buttons.reply_markup }
+          );
+          return;
+        }
+      }
+      // Try as URL
+      await ctx.replyWithPhoto(imagePath, {
         caption: message,
+        parse_mode: 'Markdown',
         reply_markup: buttons.reply_markup
       });
-    } catch {
-      await ctx.reply(message, buttons);
+    } catch (err) {
+      console.error('Failed to send photo:', err);
+      await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
     }
   } else {
-    await ctx.reply(message, buttons);
+    await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
   }
 }
 
@@ -575,32 +602,53 @@ if (bot) {
     }
   });
 
-  // Product actions
-  bot.action(/^add_cart_(\d+)_(.+)$/, async (ctx) => {
+  // Product actions - Add to cart (short format: c_<qty>_<shortId>)
+  bot.action(/^c_(\d+)_(.+)$/, async (ctx) => {
     const quantity = parseInt(ctx.match[1]);
-    const productId = ctx.match[2];
+    const shortId = ctx.match[2];
     const session = getSession(ctx.from!.id.toString());
     
-    const existing = session.cart.find(c => c.productId === productId);
+    // Find full product ID by matching prefix
+    const products = await getCachedProducts();
+    const product = products.find(p => p.id.startsWith(shortId));
+    
+    if (!product) {
+      await ctx.answerCbQuery('Товар не знайдено');
+      return;
+    }
+    
+    const existing = session.cart.find(c => c.productId === product.id);
     if (existing) {
       existing.quantity += quantity;
     } else {
-      session.cart.push({ productId, quantity });
+      session.cart.push({ productId: product.id, quantity });
     }
     
-    await ctx.answerCbQuery(`Додано ${quantity} шт. до кошика!`);
+    const txt = getText(session);
+    const totalInCart = session.cart.reduce((sum, item) => sum + item.quantity, 0);
+    await ctx.answerCbQuery(`+${quantity} 📦 Всього: ${totalInCart} упак.`);
   });
 
-  bot.action(/^favorite_(.+)$/, async (ctx) => {
-    const productId = ctx.match[1];
+  // Favorite toggle (short format: f_<shortId>)
+  bot.action(/^f_(.+)$/, async (ctx) => {
+    const shortId = ctx.match[1];
     const session = getSession(ctx.from!.id.toString());
     
-    if (session.favorites.includes(productId)) {
-      session.favorites = session.favorites.filter(id => id !== productId);
-      await ctx.answerCbQuery('Видалено з обраного');
+    // Find full product ID by matching prefix
+    const products = await getCachedProducts();
+    const product = products.find(p => p.id.startsWith(shortId));
+    
+    if (!product) {
+      await ctx.answerCbQuery('Товар не знайдено');
+      return;
+    }
+    
+    if (session.favorites.includes(product.id)) {
+      session.favorites = session.favorites.filter(id => id !== product.id);
+      await ctx.answerCbQuery('💔 Видалено з обраного');
     } else {
-      session.favorites.push(productId);
-      await ctx.answerCbQuery('Додано до обраного!');
+      session.favorites.push(product.id);
+      await ctx.answerCbQuery('❤️ Додано до обраного!');
     }
   });
 
@@ -633,41 +681,59 @@ if (bot) {
     await ctx.answerCbQuery();
     
     if (session.cart.length === 0) {
-      await ctx.reply(txt.cartEmpty, Markup.inlineKeyboard([
-        [Markup.button.callback(txt.catalog, 'catalog')],
-        [Markup.button.callback(txt.back, 'menu')]
-      ]));
+      await ctx.reply(
+        '🧺 *Ваш кошик порожній*\n\nДодайте товари з каталогу!',
+        { 
+          parse_mode: 'Markdown',
+          ...Markup.inlineKeyboard([
+            [Markup.button.callback('🌹 Каталог', 'catalog')],
+            [Markup.button.callback('◀️ Меню', 'menu')]
+          ])
+        }
+      );
       return;
     }
     
     const products = await storage.getProducts();
     let total = 0;
-    let message = `${txt.cartItems}\n\n`;
+    let message = '🧺 *ВАШ КОШИК*\n';
+    message += '━━━━━━━━━━━━━━━━━━\n\n';
     
+    let itemNum = 1;
     for (const item of session.cart) {
       const product = products.find(p => p.id === item.productId);
       if (product) {
-        const price = calculatePrice(product, session);
+        const price = await calculatePriceAsync(product, session);
         const itemTotal = price * item.quantity;
         total += itemTotal;
-        message += `• ${product.name} (${product.variety})\n`;
-        message += `  ${item.quantity} шт. × ${price} грн = ${itemTotal} грн\n\n`;
+        
+        message += `*${itemNum}. ${product.name}*\n`;
+        message += `   _${product.variety}_\n`;
+        message += `   📦 ${item.quantity} упак. × ${price.toLocaleString('uk-UA')} грн\n`;
+        message += `   💰 = *${itemTotal.toLocaleString('uk-UA')} грн*\n\n`;
+        itemNum++;
       }
     }
     
-    message += `\n${txt.total} ${total.toLocaleString()} грн`;
+    message += '━━━━━━━━━━━━━━━━━━\n';
+    message += `💵 *ВСЬОГО: ${total.toLocaleString('uk-UA')} грн*`;
     
-    if (total < 5000) {
-      message += `\n\n${txt.minOrder}`;
+    if (session.customerType === 'wholesale') {
+      message += `\n🏷️ _Оптова знижка -5% застосована_`;
     }
     
-    const buttons = [
-      total >= 5000 ? [Markup.button.callback(txt.checkout, 'checkout')] : [],
-      [Markup.button.callback(txt.clearCart, 'clear_cart')],
-      [Markup.button.callback(txt.back, 'menu')]
-    ].filter(row => row.length > 0);
+    if (total < 5000) {
+      message += `\n\n⚠️ Мін. замовлення: 5000 грн\n_До мінімуму: ${(5000 - total).toLocaleString('uk-UA')} грн_`;
+    }
     
-    await ctx.reply(message, Markup.inlineKeyboard(buttons));
+    const buttons = [];
+    if (total >= 5000) {
+      buttons.push([Markup.button.callback('✅ Оформити замовлення', 'checkout')]);
+    }
+    buttons.push([Markup.button.callback('🗑️ Очистити', 'clear_cart'), Markup.button.callback('🌹 Додати ще', 'catalog')]);
+    buttons.push([Markup.button.callback('◀️ Меню', 'menu')]);
+    
+    await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
   });
 
   // Clear cart
@@ -687,12 +753,12 @@ if (bot) {
     // Create order in storage
     const products = await getCachedProducts();
     let total = 0;
-    const items = [];
+    const items: { product: Product; quantity: number; price: number; total: number }[] = [];
     
     for (const item of session.cart) {
       const product = products.find(p => p.id === item.productId);
       if (product) {
-        const price = calculatePrice(product, session);
+        const price = await calculatePriceAsync(product, session);
         const itemTotal = price * item.quantity;
         total += itemTotal;
         items.push({ product, quantity: item.quantity, price, total: itemTotal });
@@ -716,14 +782,21 @@ if (bot) {
       });
     }
     
-    // Create order
-    const orderNumber = `ORD-${Date.now()}`;
+    // Create order with beautiful number
+    const orderNumber = `FL-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    
+    // Build order items description
+    let itemsDescription = items.map(i => `${i.product.name} x${i.quantity}`).join(', ');
+    if (itemsDescription.length > 200) {
+      itemsDescription = itemsDescription.substring(0, 197) + '...';
+    }
+    
     const order = await storage.createOrder({
       orderNumber,
       customerId: customer.id,
       status: 'new',
       totalUah: total.toString(),
-      comment: `Telegram Order | Items: ${items.length}`
+      comment: `${session.city || ''} | ${itemsDescription}`
     });
     
     // Persist order items
@@ -733,7 +806,7 @@ if (bot) {
         productId: item.product.id,
         quantity: item.quantity,
         priceUah: item.price.toString(),
-        totalUah: (item.price * item.quantity).toString()
+        totalUah: item.total.toString()
       });
     }
     
@@ -743,7 +816,6 @@ if (bot) {
     const newPoints = (customer.loyaltyPoints || 0) + pointsEarned;
     const newTotalOrders = (customer.totalOrders || 0) + 1;
     
-    // Using cast for update because shared schema might not expose these fields for update
     await storage.updateCustomer(customer.id, {
       totalSpent: newTotalSpent.toString(),
       loyaltyPoints: newPoints,
@@ -751,20 +823,41 @@ if (bot) {
     } as any);
     
     // Check for 11th order discount (every 11th order gets -1000 UAH)
-    let discountMessage = '';
+    let bonusMessage = '';
     if (newTotalOrders % 11 === 0) {
-      discountMessage = '\n🎁 Поздравляем! Это ваш 11-й заказ - скидка 1000 грн!';
-      // Note: Discount should be applied to next order
+      bonusMessage = '\n\n🎁 *Вітаємо! Це ваше 11-те замовлення!*\n_Знижка 1000 грн на наступне замовлення!_';
+    } else if (newPoints >= 100) {
+      bonusMessage = '\n\n🎁 *Вітаємо! Ви накопичили 100+ балів!*\n_Вам доступний подарунок!_';
     }
     
     // Clear cart
     session.cart = [];
     
     await ctx.answerCbQuery();
-    await ctx.reply(
-      `${txt.orderSuccess}\n\n📝 Номер заявки: ${orderNumber}\n💰 Сума: ${total.toLocaleString()} грн\n🏆 Бонусні бали: +${pointsEarned}${discountMessage}`,
-      Markup.inlineKeyboard([[Markup.button.callback(txt.mainMenu, 'menu')]])
-    );
+    
+    // Build beautiful order confirmation
+    let confirmMessage = '✅ *ЗАМОВЛЕННЯ ПРИЙНЯТО!*\n';
+    confirmMessage += '━━━━━━━━━━━━━━━━━━\n\n';
+    confirmMessage += `📋 *Номер:* \`${orderNumber}\`\n\n`;
+    
+    for (const item of items) {
+      confirmMessage += `• ${item.product.name}\n`;
+      confirmMessage += `   ${item.quantity} упак. × ${item.price.toLocaleString('uk-UA')} грн\n`;
+    }
+    
+    confirmMessage += '\n━━━━━━━━━━━━━━━━━━\n';
+    confirmMessage += `💵 *СУМА:* ${total.toLocaleString('uk-UA')} грн\n`;
+    confirmMessage += `🏆 *Бонуси:* +${pointsEarned} балів`;
+    confirmMessage += bonusMessage;
+    confirmMessage += '\n\n📞 _Менеджер зв\'яжеться з вами найближчим часом!_';
+    
+    await ctx.reply(confirmMessage, { 
+      parse_mode: 'Markdown', 
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('📦 Мої замовлення', 'history')],
+        [Markup.button.callback('🌹 Головне меню', 'menu')]
+      ]) 
+    });
   });
 
   // Promotions
@@ -799,40 +892,65 @@ if (bot) {
     const customer = customers.find(c => c.telegramId === telegramId);
     
     if (!customer) {
-      await ctx.reply(txt.noHistory, Markup.inlineKeyboard([
-        [Markup.button.callback(txt.back, 'menu')]
-      ]));
+      await ctx.reply(
+        '📦 *ІСТОРІЯ ЗАМОВЛЕНЬ*\n━━━━━━━━━━━━━━━━━━\n\n_У вас ще немає замовлень_\n\nОформіть перше замовлення!',
+        { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+          [Markup.button.callback('🌹 Каталог', 'catalog')],
+          [Markup.button.callback('◀️ Меню', 'menu')]
+        ])}
+      );
       return;
     }
     
     const orders = await storage.getCustomerOrders(customer.id);
     
     if (orders.length === 0) {
-      await ctx.reply(txt.noHistory, Markup.inlineKeyboard([
-        [Markup.button.callback(txt.back, 'menu')]
-      ]));
+      await ctx.reply(
+        '📦 *ІСТОРІЯ ЗАМОВЛЕНЬ*\n━━━━━━━━━━━━━━━━━━\n\n_У вас ще немає замовлень_\n\nОформіть перше замовлення!',
+        { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+          [Markup.button.callback('🌹 Каталог', 'catalog')],
+          [Markup.button.callback('◀️ Меню', 'menu')]
+        ])}
+      );
       return;
     }
     
-    const statusMap: Record<string, string> = {
-      new: 'Нова',
-      confirmed: 'Підтверджена',
-      processing: 'В роботі',
-      shipped: 'Відправлена',
-      completed: 'Закрита',
-      cancelled: 'Скасована'
+    const statusEmojis: Record<string, string> = {
+      new: '🆕',
+      confirmed: '✅',
+      processing: '⚙️',
+      shipped: '🚚',
+      completed: '✨',
+      cancelled: '❌'
     };
     
-    let message = `${txt.history}:\n\n`;
+    const statusNames: Record<string, string> = {
+      new: 'Нове',
+      confirmed: 'Підтверджено',
+      processing: 'В обробці',
+      shipped: 'Відправлено',
+      completed: 'Завершено',
+      cancelled: 'Скасовано'
+    };
+    
+    let message = '📦 *ІСТОРІЯ ЗАМОВЛЕНЬ*\n';
+    message += '━━━━━━━━━━━━━━━━━━\n\n';
+    
     for (const order of orders.slice(0, 10)) {
-      message += `📦 ${order.orderNumber}\n`;
-      message += `   Статус: ${statusMap[order.status] || order.status}\n`;
-      message += `   Сума: ${order.totalUah} грн\n\n`;
+      const date = order.createdAt ? new Date(order.createdAt).toLocaleDateString('uk-UA') : '';
+      const emoji = statusEmojis[order.status] || '📋';
+      const status = statusNames[order.status] || order.status;
+      
+      message += `${emoji} *${order.orderNumber}*\n`;
+      message += `   📅 ${date}\n`;
+      message += `   💰 ${parseFloat(order.totalUah).toLocaleString('uk-UA')} грн\n`;
+      message += `   📌 _${status}_\n\n`;
     }
     
-    await ctx.reply(message, Markup.inlineKeyboard([
-      [Markup.button.callback(txt.back, 'menu')]
-    ]));
+    await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+      [Markup.button.callback('🌹 Каталог', 'catalog')],
+      [Markup.button.callback('◀️ Меню', 'menu')]
+    ])});
   });
 
   // Manager
