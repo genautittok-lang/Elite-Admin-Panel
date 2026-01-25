@@ -491,6 +491,11 @@ export async function registerRoutes(
     }
   });
 
+  // Healthcheck for Railway
+  app.get("/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+
   app.get("/api/analytics/top-customers", async (req, res) => {
     try {
       const topCustomers = await storage.getTopCustomers(10);
