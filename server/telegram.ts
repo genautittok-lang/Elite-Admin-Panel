@@ -365,8 +365,8 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   const txt = getText(session);
   const catalogType = session.currentCatalogType || 'preorder';
   
-  // Validate session state
-  if (!session.currentFarm || !session.currentType || !session.currentCountry) {
+  // Validate session state - currentFarm is optional for instock
+  if (!session.currentType || !session.currentCountry || (catalogType === 'preorder' && !session.currentFarm)) {
     await ctx.editMessageText(
       '❌ Сесія застаріла. Почніть з початку.',
       Markup.inlineKeyboard([
@@ -380,9 +380,10 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   // Get all products for this selection
   const products = await getCachedProducts();
   const baseProducts = products.filter(p => 
-    p.plantationId === session.currentFarm &&
     p.typeId === session.currentType &&
-    p.catalogType === catalogType
+    p.catalogType === catalogType &&
+    (catalogType === 'instock' || p.plantationId === session.currentFarm) &&
+    p.countryId === session.currentCountry
   );
   
   const currentFilters = session.filters || {};
@@ -446,8 +447,12 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
     buttons.push([Markup.button.callback('🔄 Скинути фільтри', 'clear_filters')]);
   }
   
-  // Safe back navigation - to farm selection for current country
-  buttons.push([Markup.button.callback('◀️ До ферм', `country_${catalogType}_${session.currentCountry}`)]);
+  // Safe back navigation
+  if (catalogType === 'instock') {
+    buttons.push([Markup.button.callback('◀️ До типів', `country_instock_${session.currentCountry}`)]);
+  } else {
+    buttons.push([Markup.button.callback('◀️ До ферм', `country_preorder_${session.currentCountry}`)]);
+  }
   buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
   
   try {
@@ -1190,7 +1195,7 @@ if (bot) {
     
     const txt = getText(session);
     const totalInCart = session.cart.reduce((sum, item) => sum + item.quantity, 0);
-    await ctx.answerCbQuery(`+${quantity} 📦 Всього: ${totalInCart} упак.`);
+    await ctx.answerCbQuery(`✅ Додано ${quantity} шт. Всього: ${totalInCart} у кошику`);
   });
 
   // Favorite toggle (short format: f_<shortId>)
