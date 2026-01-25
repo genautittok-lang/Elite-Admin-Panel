@@ -489,6 +489,8 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   message += `💰 *${price.toLocaleString('uk-UA')} грн* / ${product.packSize || 25} ${txt.stem}`;
   if (product.isPromo) {
     message += `\n🔥 *АКЦІЙНА ЦІНА!*`;
+  } else {
+    message += `\n📦 *АКЦІЯ!*`; // Just in case, to mark promo products
   }
   
   if (session.customerType === 'wholesale') {
@@ -823,7 +825,41 @@ if (bot) {
       p.countryId === countryId && 
       p.catalogType === catalogType
     );
-    
+
+    // For instock, we skip farms and go to flower types
+    if (catalogType === 'instock') {
+      const typeIdsWithProducts = Array.from(new Set(
+        countryProducts.map(p => p.typeId)
+      ));
+      
+      const allTypes = await storage.getFlowerTypes();
+      const typesWithProducts = allTypes.filter(t => typeIdsWithProducts.includes(t.id));
+      
+      if (typesWithProducts.length === 0) {
+        await ctx.editMessageText(
+          '❌ В цій країні немає товарів в наявності',
+          Markup.inlineKeyboard([
+            [Markup.button.callback(txt.back, 'catalog_instock')],
+            [Markup.button.callback('🏠 Меню', 'menu')]
+          ])
+        );
+        return;
+      }
+
+      const typeButtons = typesWithProducts.map(t => [
+        Markup.button.callback(`🌸 ${t.name}`, `ftype_${t.id.substring(0, 12)}`)
+      ]);
+      
+      typeButtons.push([Markup.button.callback(txt.back, 'catalog_instock')]);
+      typeButtons.push([Markup.button.callback('🏠 Меню', 'menu')]);
+      
+      await ctx.editMessageText(
+        `🌹 *Оберіть тип квітів (${country.flag} ${country.name})*`,
+        { parse_mode: 'Markdown', ...Markup.inlineKeyboard(typeButtons) }
+      );
+      return;
+    }
+
     // Get unique farm/plantation IDs that have products
     const farmIdsWithProducts = Array.from(new Set(countryProducts.map(p => p.plantationId).filter(Boolean)));
     
