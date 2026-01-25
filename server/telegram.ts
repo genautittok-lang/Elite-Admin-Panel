@@ -853,8 +853,11 @@ if (bot) {
       typeButtons.push([Markup.button.callback(txt.back, 'catalog_instock')]);
       typeButtons.push([Markup.button.callback('🏠 Меню', 'menu')]);
       
+      const allCountries = await storage.getCountries();
+      const country = allCountries.find(c => c.id === countryId);
+
       await ctx.editMessageText(
-        `🌹 *Оберіть тип квітів (${country.flag} ${country.name})*`,
+        `🌹 *Оберіть тип квітів (${country?.flag || ''} ${country?.name || ''})*`,
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard(typeButtons) }
       );
       return;
