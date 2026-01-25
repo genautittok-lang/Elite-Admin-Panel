@@ -1697,16 +1697,23 @@ if (bot) {
     await showMainMenu(ctx, session, true);
   });
 
+  // Handle bot errors gracefully
+  bot.catch((err: any, ctx: any) => {
+    console.error('Telegram bot error:', err);
+  });
+
   // Launch bot with delay to ensure server is ready first
   console.log("Telegram: scheduling bot launch...");
-  setTimeout(() => {
-    console.log("Telegram: attempting to launch bot...");
-    bot.launch({ dropPendingUpdates: true }).then(() => {
+  setTimeout(async () => {
+    try {
+      console.log("Telegram: attempting to launch bot...");
+      await bot.launch({ dropPendingUpdates: true });
       console.log('Telegram bot started successfully');
-    }).catch((err) => {
+    } catch (err) {
       console.error('Failed to start Telegram bot:', err);
-    });
-  }, 3000);
+      // Don't crash the process - just log the error
+    }
+  }, 5000);
 
   // Graceful stop - only on SIGINT (Ctrl+C), not on SIGTERM
   process.once('SIGINT', () => {

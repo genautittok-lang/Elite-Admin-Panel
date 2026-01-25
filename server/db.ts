@@ -10,5 +10,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// Handle pool errors gracefully
+pool.on('error', (err) => {
+  console.error('Database pool error:', err);
+});
+
 export const db = drizzle(pool, { schema });
