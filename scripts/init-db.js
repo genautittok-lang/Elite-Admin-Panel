@@ -47,7 +47,6 @@ async function initDatabase() {
       console.log('╚════════════════════════════════════════════════════════════╝');
       console.log('');
       client.release();
-      await pool.end();
       return;
     }
 

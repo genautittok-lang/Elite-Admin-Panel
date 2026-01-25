@@ -1,0 +1,69 @@
+Starting Container
+╚════════════════════════════════════════════════════════════╝
+📡 Connecting to database...
+✅ Connected successfully!
+📦 Tables already exist - skipping initialization
+╔════════════════════════════════════════════════════════════╗
+║           🌸 FlowerB2B Database Check 🌸                    ║
+╔════════════════════════════════════════════════════════════╗
+║              ✅ Database ready!                            ║
+╚════════════════════════════════════════════════════════════╝
+/app/node_modules/pg-pool/index.js:453
+      const err = new Error('Called end on pool more than once')
+                  ^
+Error: Called end on pool more than once
+    at BoundPool.end (/app/node_modules/pg-pool/index.js:453:19)
+    at initDatabase (file:///app/scripts/init-db.js:79:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Node.js v20.18.1
+╔════════════════════════════════════════════════════════════╗
+║           🌸 FlowerB2B Database Check 🌸                    ║
+╚════════════════════════════════════════════════════════════╝
+📡 Connecting to database...
+✅ Connected successfully!
+📦 Tables already exist - skipping initialization
+╔════════════════════════════════════════════════════════════╗
+║              ✅ Database ready!                            ║
+╚════════════════════════════════════════════════════════════╝
+/app/node_modules/pg-pool/index.js:453
+      const err = new Error('Called end on pool more than once')
+                  ^
+Error: Called end on pool more than once
+    at BoundPool.end (/app/node_modules/pg-pool/index.js:453:19)
+    at initDatabase (file:///app/scripts/init-db.js:79:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Node.js v20.18.1
+╔════════════════════════════════════════════════════════════╗
+║           🌸 FlowerB2B Database Check 🌸                    ║
+╚════════════════════════════════════════════════════════════╝
+📡 Connecting to database...
+✅ Connected successfully!
+📦 Tables already exist - skipping initialization
+╔════════════════════════════════════════════════════════════╗
+║              ✅ Database ready!                            ║
+╚════════════════════════════════════════════════════════════╝
+/app/node_modules/pg-pool/index.js:453
+Node.js v20.18.1
+      const err = new Error('Called end on pool more than once')
+                  ^
+Error: Called end on pool more than once
+    at BoundPool.end (/app/node_modules/pg-pool/index.js:453:19)
+    at initDatabase (file:///app/scripts/init-db.js:79:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+╔════════════════════════════════════════════════════════════╗
+║           🌸 FlowerB2B Database Check 🌸                    ║
+╚════════════════════════════════════════════════════════════╝
+📡 Connecting to database...
+✅ Connected successfully!
+    at BoundPool.end (/app/node_modules/pg-pool/index.js:453:19)
+    at initDatabase (file:///app/scripts/init-db.js:79:16)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+📦 Tables already exist - skipping initialization
+Node.js v20.18.1
+╔════════════════════════════════════════════════════════════╗
+║              ✅ Database ready!                            ║
+╚════════════════════════════════════════════════════════════╝
+/app/node_modules/pg-pool/index.js:453
+      const err = new Error('Called end on pool more than once')
+                  ^
+Error: Called end on pool more than once
