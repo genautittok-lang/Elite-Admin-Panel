@@ -65,11 +65,6 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Healthcheck for Railway - MUST BE FIRST
-  app.get("/health", (_req, res) => {
-    res.status(200).send("OK");
-  });
-
   // Serve uploaded files (in development; production handled by static.ts)
 
   // Multiple files upload

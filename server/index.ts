@@ -85,6 +85,11 @@ app.use((req, res, next) => {
     await setupVite(httpServer, app);
   }
 
+  // Healthcheck for Railway - MUST BE FIRST (moved to index.ts for absolute priority)
+  app.get("/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
+
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 8080 for Railway.
   // this serves both the API and the client.
