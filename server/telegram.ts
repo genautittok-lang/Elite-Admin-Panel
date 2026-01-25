@@ -88,7 +88,7 @@ function calculatePrice(product: Product, session: UserSession): number {
 // Translations
 const t = {
   ua: {
-    welcome: (name: string) => `Вітаємо, ${name}! 🌸\n\nТут ви можете:\n• переглянути актуальний асортимент\n• дізнатися ціни\n• швидко сформувати замовлення`,
+    welcome: (name: string) => `Вітаємо у FlowerB2B, ${name}! 🌸\n\nВаш персональний помічник для оптових замовлень квітів.\n\nТут ви можете:\n✅ Переглядати актуальний асортимент у реальному часі\n✅ Дізнаватися персональні ціни (з урахуванням знижок)\n✅ Формувати замовлення за лічені хвилини\n✅ Відстежувати статус своїх заявок\n✅ Накопичувати бонуси за програмою лояльності\n\nОберіть пункт меню для початку роботи:`,
     selectLanguage: '🌐 Оберіть мову / Select language:',
     selectCity: '📍 Введіть ваше місто:',
     selectType: '🏪 Оберіть тип клієнта:',
@@ -151,7 +151,7 @@ const t = {
     quantity: 'Кількість'
   },
   en: {
-    welcome: (name: string) => `Welcome, ${name}! 🌸\n\nHere you can:\n• browse current assortment\n• check prices\n• quickly place an order`,
+    welcome: (name: string) => `Welcome to FlowerB2B, ${name}! 🌸\n\nYour personal assistant for wholesale flower orders.\n\nHere you can:\n✅ Browse current assortment in real-time\n✅ Check personal prices (including discounts)\n✅ Place orders in minutes\n✅ Track your order status\n✅ Earn bonuses with our loyalty program\n\nSelect a menu item to get started:`,
     selectLanguage: '🌐 Оберіть мову / Select language:',
     selectCity: '📍 Enter your city:',
     selectType: '🏪 Select customer type:',
@@ -214,7 +214,7 @@ const t = {
     quantity: 'Quantity'
   },
   ru: {
-    welcome: (name: string) => `Добро пожаловать, ${name}! 🌸\n\nЗдесь вы можете:\n• просмотреть актуальный ассортимент\n• узнать цены\n• быстро оформить заказ`,
+    welcome: (name: string) => `Добро пожаловать во FlowerB2B, ${name}! 🌸\n\nВаш персональный помощник для оптовых заказов цветов.\n\nЗдесь вы можете:\n✅ Просматривать актуальный ассортимент в реальном времени\n✅ Узнавать персональные цены (с учетом скидок)\n✅ Формировать заказы за считанные минуты\n✅ Отслеживать статус своих заявок\n✅ Накапливать бонусы по программе лояльности\n\nВыберите пункт меню для начала работы:`,
     selectLanguage: '🌐 Оберіть мову / Select language:',
     selectCity: '📍 Введите ваш город:',
     selectType: '🏪 Выберите тип клиента:',
@@ -701,7 +701,8 @@ if (bot) {
         orderId: order.id,
         productId: item.product.id,
         quantity: item.quantity,
-        priceUah: item.price.toString()
+        priceUah: item.price.toString(),
+        totalUah: (item.price * item.quantity).toString()
       });
     }
     
@@ -711,11 +712,12 @@ if (bot) {
     const newPoints = (customer.loyaltyPoints || 0) + pointsEarned;
     const newTotalOrders = (customer.totalOrders || 0) + 1;
     
+    // Using cast for update because shared schema might not expose these fields for update
     await storage.updateCustomer(customer.id, {
       totalSpent: newTotalSpent.toString(),
       loyaltyPoints: newPoints,
       totalOrders: newTotalOrders
-    });
+    } as any);
     
     // Check for 11th order discount (every 11th order gets -1000 UAH)
     let discountMessage = '';

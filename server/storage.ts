@@ -94,7 +94,21 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
-    // Seed countries (using ISO codes as flags - display with flag icon in UI)
+    // Seed settings
+    const settingsData = [
+      { key: "usd_to_uah_rate", value: "41.50", description: "Курс USD/UAH" },
+      { key: "min_order_amount", value: "5000", description: "Мінімальна сума замовлення" },
+      { key: "wholesale_discount", value: "5", description: "Знижка для великого опту (%)" },
+      { key: "loyalty_points_rate", value: "1000", description: "Грн на 1 бал" },
+      { key: "auto_exchange_rate", value: "false", description: "Автоматичний курс" },
+      { key: "notifications_enabled", value: "true", description: "Push-сповіщення" },
+    ];
+    settingsData.forEach((s) => {
+      const id = randomUUID();
+      this.settings.set(s.key, { ...s, id });
+    });
+
+    // Seed countries
     const countriesData = [
       { code: "KE", name: "Kenya", flag: "KE" },
       { code: "EC", name: "Ecuador", flag: "EC" },
@@ -121,94 +135,6 @@ export class MemStorage implements IStorage {
     flowerTypesData.forEach((ft) => {
       const id = randomUUID();
       this.flowerTypes.set(id, { ...ft, id });
-    });
-
-    // Seed plantations
-    const countryIds = Array.from(this.countries.values());
-    const plantationsData = [
-      { name: "Naivasha Roses", countryId: countryIds.find(c => c.code === "KE")?.id || "" },
-      { name: "Tambuzi Farm", countryId: countryIds.find(c => c.code === "KE")?.id || "" },
-      { name: "Rosaprima", countryId: countryIds.find(c => c.code === "EC")?.id || "" },
-      { name: "Alexandra Farms", countryId: countryIds.find(c => c.code === "CO")?.id || "" },
-    ];
-    plantationsData.forEach((p) => {
-      const id = randomUUID();
-      this.plantations.set(id, { ...p, id });
-    });
-
-    // Seed some products
-    const typeIds = Array.from(this.flowerTypes.values());
-    const roseType = typeIds.find(t => t.name === "Троянда");
-    const plantationIds = Array.from(this.plantations.values());
-    
-    const productsData = [
-      { name: "Троянда", variety: "Freedom", typeId: roseType?.id || "", countryId: countryIds.find(c => c.code === "EC")?.id || "", plantationId: plantationIds[2]?.id, flowerClass: "Premium", height: 70, color: "Червоний", priceUsd: "0.85", priceUah: "35", status: "available", catalogType: "instock", packSize: 25 },
-      { name: "Троянда", variety: "Explorer", typeId: roseType?.id || "", countryId: countryIds.find(c => c.code === "EC")?.id || "", plantationId: plantationIds[2]?.id, flowerClass: "Premium", height: 60, color: "Рожевий", priceUsd: "0.75", priceUah: "31", status: "available", catalogType: "instock", packSize: 25 },
-      { name: "Троянда", variety: "White Ohara", typeId: roseType?.id || "", countryId: countryIds.find(c => c.code === "EC")?.id || "", plantationId: plantationIds[2]?.id, flowerClass: "Garden", height: 50, color: "Білий", priceUsd: "1.20", priceUah: "50", status: "available", catalogType: "preorder", packSize: 25 },
-      { name: "Троянда", variety: "Juliet", typeId: roseType?.id || "", countryId: countryIds.find(c => c.code === "KE")?.id || "", plantationId: plantationIds[0]?.id, flowerClass: "Garden", height: 50, color: "Персиковий", priceUsd: "1.50", priceUah: null, status: "preorder", catalogType: "preorder", packSize: 25 },
-    ];
-    productsData.forEach((p) => {
-      const id = randomUUID();
-      this.products.set(id, { ...p, id, isPromo: false, images: null, expectedDate: null, createdAt: new Date() } as unknown as Product);
-    });
-
-    // Seed customers
-    const customersData = [
-      { name: "Олена Квіткова", phone: "+380501234567", shopName: "Квіти для Вас", city: "Київ", customerType: "flower_shop", language: "ua", totalOrders: 15, totalSpent: "45000", loyaltyPoints: 45, isBlocked: false },
-      { name: "Андрій Петренко", phone: "+380671234567", shopName: "Флора Опт", city: "Львів", customerType: "wholesale", language: "ua", totalOrders: 32, totalSpent: "156000", loyaltyPoints: 156, isBlocked: false },
-      { name: "Марія Шевченко", phone: "+380631234567", shopName: "Букет", city: "Одеса", customerType: "flower_shop", language: "ua", totalOrders: 8, totalSpent: "24000", loyaltyPoints: 24, isBlocked: false },
-    ];
-    customersData.forEach((c) => {
-      const id = randomUUID();
-      this.customers.set(id, { ...c, id, telegramId: null, createdAt: new Date() } as unknown as Customer);
-    });
-
-    // Seed orders
-    const customerIds = Array.from(this.customers.values());
-    const productIds = Array.from(this.products.values());
-    
-    const ordersData = [
-      { orderNumber: "FL-1001", customerId: customerIds[0]?.id || "", status: "new", totalUah: "12500", comment: "Терміново потрібно" },
-      { orderNumber: "FL-1002", customerId: customerIds[1]?.id || "", status: "confirmed", totalUah: "45000", comment: null },
-      { orderNumber: "FL-1003", customerId: customerIds[2]?.id || "", status: "processing", totalUah: "8700", comment: null },
-      { orderNumber: "FL-1004", customerId: customerIds[0]?.id || "", status: "shipped", totalUah: "15200", comment: "Доставка Новою Поштою" },
-      { orderNumber: "FL-1005", customerId: customerIds[1]?.id || "", status: "completed", totalUah: "67500", comment: null },
-    ];
-    ordersData.forEach((o) => {
-      const id = randomUUID();
-      const order = { ...o, id, createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000), updatedAt: new Date() } as unknown as Order;
-      this.orders.set(id, order);
-      
-      // Add order items
-      const numItems = Math.floor(Math.random() * 3) + 1;
-      for (let i = 0; i < numItems; i++) {
-        const product = productIds[Math.floor(Math.random() * productIds.length)];
-        const quantity = (Math.floor(Math.random() * 4) + 1) * 25;
-        const itemId = randomUUID();
-        this.orderItems.set(itemId, {
-          id: itemId,
-          orderId: id,
-          productId: product?.id || "",
-          quantity,
-          priceUah: product?.priceUah || "35",
-          totalUah: String(quantity * Number(product?.priceUah || 35)),
-        });
-      }
-    });
-    this.orderCounter = 1006;
-
-    // Seed settings
-    const settingsData = [
-      { key: "usd_to_uah_rate", value: "41.50", description: "Курс USD/UAH" },
-      { key: "min_order_amount", value: "5000", description: "Мінімальна сума замовлення" },
-      { key: "wholesale_discount", value: "5", description: "Знижка для великого опту (%)" },
-      { key: "loyalty_points_rate", value: "1000", description: "Грн на 1 бал" },
-      { key: "auto_exchange_rate", value: "false", description: "Автоматичний курс" },
-      { key: "notifications_enabled", value: "true", description: "Push-сповіщення" },
-    ];
-    settingsData.forEach((s) => {
-      const id = randomUUID();
-      this.settings.set(s.key, { ...s, id });
     });
   }
 
