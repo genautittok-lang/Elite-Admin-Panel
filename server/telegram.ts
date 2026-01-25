@@ -57,11 +57,11 @@ function getSession(telegramId: string): UserSession {
 // Cleanup old sessions every hour
 setInterval(() => {
   const now = Date.now();
-  for (const [id, session] of sessions.entries()) {
+  Array.from(sessions.entries()).forEach(([id, session]) => {
     if (now - session.lastInteraction > 24 * 60 * 60 * 1000) { // 24 hours
       sessions.delete(id);
     }
-  }
+  });
 }, 60 * 60 * 1000);
 
 // Helper function to calculate price (async to get rate from settings)
