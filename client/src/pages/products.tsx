@@ -154,7 +154,8 @@ export default function Products() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: ProductFormValues & { id: string }) => {
-      return apiRequest("PATCH", `/api/products/${data.id}`, data);
+      const { id, ...updateData } = data;
+      return apiRequest("PATCH", `/api/products/${id}`, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -163,8 +164,13 @@ export default function Products() {
       setEditingProduct(null);
       form.reset();
     },
-    onError: () => {
-      toast({ title: "Помилка оновлення", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Update error:", error);
+      toast({ 
+        title: "Помилка оновлення", 
+        description: error.message,
+        variant: "destructive" 
+      });
     },
   });
 
