@@ -1,0 +1,112 @@
+Starting Container
+Setting up static file serving...
+    length: 107,
+Looking for build directory at: /app/dist/public
+    severity: 'ERROR',
+Build directory found!
+    code: '42P01',
+    detail: undefined,
+Environment PORT: 8080, using port: 8080
+Environment NODE_ENV: production
+10:59:02 PM [express] serving on port 8080 (Ready for healthcheck)
+npm warn config production Use `--omit=dev` instead.
+      at async gm.getSetting (/app/dist/index.cjs:76:107275)
+Server is listening on 0.0.0.0:8080
+      at async HS (/app/dist/index.cjs:76:110931) {
+Unhandled Rejection at: Promise {
+> rest-express@1.0.0 start
+  <rejected> error: relation "settings" does not exist
+      at /app/dist/index.cjs:68:13326
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+> NODE_ENV=production node dist/index.cjs
+      at async /app/dist/index.cjs:76:31378
+Telegram: bot instance created: Yes
+Telegram: checking token... Token found
+Telegram: scheduling bot launch...
+    hint: undefined,
+    position: '49',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '1449',
+    routine: 'parserOpenTable'
+  }
+} reason: error: relation "settings" does not exist
+    at /app/dist/index.cjs:68:13326
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/dist/index.cjs:76:31378
+    at async gm.getSetting (/app/dist/index.cjs:76:107275)
+    at async HS (/app/dist/index.cjs:76:110931) {
+  length: 107,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '49',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Telegram: attempting to launch bot...
+Unhandled Rejection at: Promise {
+  <rejected> error: relation "settings" does not exist
+      at /app/dist/index.cjs:68:13326
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async /app/dist/index.cjs:76:31378
+      at async gm.getSetting (/app/dist/index.cjs:76:107275)
+      at async Timeout.HS [as _onTimeout] (/app/dist/index.cjs:76:110931) {
+    length: 107,
+    severity: 'ERROR',
+    code: '42P01',
+    detail: undefined,
+    hint: undefined,
+    position: '49',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'parse_relation.c',
+    line: '1449',
+    routine: 'parserOpenTable'
+  }
+} reason: error: relation "settings" does not exist
+    at /app/dist/index.cjs:68:13326
+  internalQuery: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/dist/index.cjs:76:31378
+    at async gm.getSetting (/app/dist/index.cjs:76:107275)
+    at async Timeout.HS [as _onTimeout] (/app/dist/index.cjs:76:110931) {
+  length: 107,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '49',

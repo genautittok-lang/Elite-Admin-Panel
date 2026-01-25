@@ -1,1 +1,1 @@
-web: npm run start
+web: npm run db:push && npm run start
