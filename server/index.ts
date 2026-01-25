@@ -96,7 +96,7 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
     },
     () => {
-      log(`serving on port ${port}`);
+      log(`serving on port ${port} (Ready for healthcheck)`);
     },
   );
 })();
