@@ -539,7 +539,7 @@ if (bot) {
     
     const types = await storage.getFlowerTypes();
     const buttons = types.map(t => [
-      Markup.button.callback(t.name, `type_${catalogType}_${countryId}_${t.id}`)
+      Markup.button.callback(t.name, `t_${catalogType === 'preorder' ? 'p' : 'i'}_${countryId.substring(0, 8)}_${t.id.substring(0, 8)}`)
     ]);
     buttons.push([Markup.button.callback(txt.back, `catalog_${catalogType}`)]);
     
@@ -550,16 +550,17 @@ if (bot) {
   });
 
   // Flower type selection - show products
-  bot.action(/^type_(.+)_(.+)_(.+)$/, async (ctx) => {
-    const [catalogType, countryId, typeId] = [ctx.match[1], ctx.match[2], ctx.match[3]];
+  bot.action(/^t_(p|i)_(.+)_(.+)$/, async (ctx) => {
+    const [catCode, countryPart, typePart] = [ctx.match[1], ctx.match[2], ctx.match[3]];
+    const catalogType = catCode === 'p' ? 'preorder' : 'instock';
     const session = getSession(ctx.from!.id.toString());
     const txt = getText(session);
     await ctx.answerCbQuery();
     
     const products = await getCachedProducts();
     const filtered = products.filter(p => 
-      p.countryId === countryId && 
-      p.typeId === typeId &&
+      p.countryId.startsWith(countryPart) && 
+      p.typeId.startsWith(typePart) &&
       p.catalogType === catalogType
     );
     
