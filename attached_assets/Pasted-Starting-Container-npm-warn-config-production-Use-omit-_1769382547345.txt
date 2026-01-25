@@ -1,0 +1,111 @@
+Starting Container
+npm warn config production Use `--omit=dev` instead.
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[✓] Pulling schema from database...
+  ~ account_groups › countries           rename table
+  ~ accounts › countries                 rename table
+  ~ recipients › countries               rename table
+  ~ mastra_scorers › countries           rename table
+Is countries table created or renamed from another table?
+❯ + countries                            create table
+  ~ sessions › countries                 rename table
+  ~ pending_auth › countries             rename table
+  ~ mastra_traces › countries            rename table
+  ~ mastra_workflow_snapshot › countries rename table
+  ~ mastra_evals › countries             rename table
+  ~ mastra_threads › countries           rename table
+  ~ mastra_resources › countries         rename table
+  ~ mastra_ai_spans › countries          rename table
+  ~ mastra_messages › countries          rename table
+  ~ logs › countries                     rename table
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+Telegram: checking token... Token found
+Telegram: bot instance created: Yes
+Telegram: scheduling bot launch...
+Setting up static file serving...
+Looking for build directory at: /app/dist/public
+Build directory found!
+Environment PORT: 8080, using port: 8080
+Environment NODE_ENV: production
+11:08:34 PM [express] serving on port 8080 (Ready for healthcheck)
+Server is listening on 0.0.0.0:8080
+Unhandled Rejection at: Promise {
+  <rejected> error: relation "settings" does not exist
+      at /app/dist/index.cjs:68:13326
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async /app/dist/index.cjs:76:31378
+      at async gm.getSetting (/app/dist/index.cjs:76:107275)
+      at async HS (/app/dist/index.cjs:76:110931) {
+    length: 107,
+    severity: 'ERROR',
+    code: '42P01',
+    detail: undefined,
+    hint: undefined,
+    position: '49',
+    internalPosition: undefined,
+    line: '1449',
+    internalQuery: undefined,
+    routine: 'parserOpenTable'
+  }
+    where: undefined,
+} reason: error: relation "settings" does not exist
+    at /app/dist/index.cjs:68:13326
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    schema: undefined,
+    at async /app/dist/index.cjs:76:31378
+    at async gm.getSetting (/app/dist/index.cjs:76:107275)
+    at async HS (/app/dist/index.cjs:76:110931) {
+  length: 107,
+    table: undefined,
+  severity: 'ERROR',
+    column: undefined,
+  code: '42P01',
+    dataType: undefined,
+  detail: undefined,
+    constraint: undefined,
+  hint: undefined,
+    file: 'parse_relation.c',
+  position: '49',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Telegram: attempting to launch bot...
+Telegram bot error: error: relation "customers" does not exist
+    at /app/dist/index.cjs:68:13326
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/dist/index.cjs:76:31378
+    at async gm.getCustomers (/app/dist/index.cjs:76:105498)
+    at async /app/dist/index.cjs:178:1414
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    at async /app/node_modules/telegraf/lib/composer.js:519:21
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17) {
+  length: 109,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+Telegram bot error: error: relation "customers" does not exist
+  position: '232',
+  internalPosition: undefined,
+  internalQuery: undefined,
