@@ -1697,17 +1697,22 @@ if (bot) {
     await showMainMenu(ctx, session, true);
   });
 
-  // Launch bot
-  console.log("Telegram: attempting to launch bot...");
-  bot.launch().then(() => {
-    console.log('Telegram bot started successfully');
-  }).catch((err) => {
-    console.error('Failed to start Telegram bot:', err);
-  });
+  // Launch bot with delay to ensure server is ready first
+  console.log("Telegram: scheduling bot launch...");
+  setTimeout(() => {
+    console.log("Telegram: attempting to launch bot...");
+    bot.launch({ dropPendingUpdates: true }).then(() => {
+      console.log('Telegram bot started successfully');
+    }).catch((err) => {
+      console.error('Failed to start Telegram bot:', err);
+    });
+  }, 3000);
 
-  // Graceful stop
-  process.once('SIGINT', () => bot.stop('SIGINT'));
-  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+  // Graceful stop - only on SIGINT (Ctrl+C), not on SIGTERM
+  process.once('SIGINT', () => {
+    console.log('Stopping Telegram bot...');
+    bot.stop('SIGINT');
+  });
 }
 
 // Export functions for routes

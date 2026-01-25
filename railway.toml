@@ -3,4 +3,4 @@ builder = "NIXPACKS"
 
 [deploy]
 startCommand = "npm run start"
-healthcheckPath = ""
+restartPolicyType = "NEVER"
