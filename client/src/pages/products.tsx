@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
@@ -97,6 +97,14 @@ export default function Products() {
     queryKey: ["/api/flower-types"],
   });
 
+  const { data: settings } = useQuery<Array<{ key: string; value: string }>>({
+    queryKey: ["/api/settings"],
+  });
+
+  const exchangeRate = parseFloat(
+    settings?.find((s) => s.key === "usd_to_uah_rate")?.value || "41.5"
+  );
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
@@ -113,6 +121,21 @@ export default function Products() {
       isPromo: false,
     },
   });
+
+  // Auto-calculate UAH price when USD price changes
+  const watchPriceUsd = form.watch("priceUsd");
+  const watchCatalogType = form.watch("catalogType");
+  
+  useEffect(() => {
+    // Only auto-calculate for preorder items (USD based)
+    if (watchCatalogType === "preorder" && watchPriceUsd) {
+      const usdPrice = parseFloat(watchPriceUsd);
+      if (!isNaN(usdPrice) && usdPrice > 0) {
+        const uahPrice = (usdPrice * exchangeRate).toFixed(2);
+        form.setValue("priceUah", uahPrice);
+      }
+    }
+  }, [watchPriceUsd, exchangeRate, watchCatalogType, form]);
 
   const createMutation = useMutation({
     mutationFn: async (data: ProductFormValues) => {
