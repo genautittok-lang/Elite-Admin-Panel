@@ -22,6 +22,11 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 
+// Healthcheck for Railway - ABSOLUTE FIRST before any other routes
+app.get("/health", (_req, res) => {
+  res.status(200).send("OK");
+});
+
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -60,11 +65,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Healthcheck for Railway - MUST BE FIRST
-  app.get("/health", (_req, res) => {
-    res.status(200).send("OK");
-  });
-
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -89,11 +89,6 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
-
-  // Healthcheck for Railway - MUST BE FIRST (moved to index.ts for absolute priority)
-  app.get("/health", (_req, res) => {
-    res.status(200).send("OK");
-  });
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 8080 for Railway.
