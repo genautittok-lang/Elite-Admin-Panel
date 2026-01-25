@@ -9,7 +9,7 @@ if (!token) {
 
 export const bot = token ? new Telegraf(token) : null;
 
-// User session storage (in-memory for now)
+// User session storage (in-memory with weak references or simple cleanup)
 interface UserSession {
   language: 'ua' | 'en' | 'ru';
   city?: string;
@@ -20,9 +20,24 @@ interface UserSession {
   currentCountry?: string;
   currentType?: string;
   currentProduct?: string;
+  lastInteraction: number;
 }
 
 const sessions: Map<string, UserSession> = new Map();
+
+// Global caches for performance
+let productsCache: any[] | null = null;
+let lastCacheUpdate = 0;
+const CACHE_TTL = 30000; // 30 seconds
+
+async function getCachedProducts() {
+  const now = Date.now();
+  if (!productsCache || (now - lastCacheUpdate) > CACHE_TTL) {
+    productsCache = await storage.getProducts();
+    lastCacheUpdate = now;
+  }
+  return productsCache;
+}
 
 function getSession(telegramId: string): UserSession {
   if (!sessions.has(telegramId)) {
@@ -30,11 +45,24 @@ function getSession(telegramId: string): UserSession {
       language: 'ua',
       cart: [],
       favorites: [],
-      step: 'language'
+      step: 'language',
+      lastInteraction: Date.now()
     });
   }
-  return sessions.get(telegramId)!;
+  const session = sessions.get(telegramId)!;
+  session.lastInteraction = Date.now();
+  return session;
 }
+
+// Cleanup old sessions every hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, session] of sessions.entries()) {
+    if (now - session.lastInteraction > 24 * 60 * 60 * 1000) { // 24 hours
+      sessions.delete(id);
+    }
+  }
+}, 60 * 60 * 1000);
 
 // Helper function to calculate price (async to get rate from settings)
 async function calculatePriceAsync(product: Product, session: UserSession): Promise<number> {
@@ -88,7 +116,7 @@ function calculatePrice(product: Product, session: UserSession): number {
 // Translations
 const t = {
   ua: {
-    welcome: (name: string) => `Вітаємо у FlowerB2B, ${name}! 🌸\n\nВаш персональний помічник для оптових замовлень квітів.\n\nТут ви можете:\n✅ Переглядати актуальний асортимент у реальному часі\n✅ Дізнаватися персональні ціни (з урахуванням знижок)\n✅ Формувати замовлення за лічені хвилини\n✅ Відстежувати статус своїх заявок\n✅ Накопичувати бонуси за програмою лояльності\n\nОберіть пункт меню для початку роботи:`,
+    welcome: (name: string) => `Вітаємо, ${name}! 🌸\n\nТут ви можете:\n✅ Переглянути асортимент\n✅ Дізнатися персональні ціни\n✅ Оформити замовлення\n✅ Накопичити бонуси\n\nОберіть пункт меню:`,
     selectLanguage: '🌐 Оберіть мову / Select language:',
     selectCity: '📍 Введіть ваше місто:',
     selectType: '🏪 Оберіть тип клієнта:',
@@ -151,7 +179,7 @@ const t = {
     quantity: 'Кількість'
   },
   en: {
-    welcome: (name: string) => `Welcome to FlowerB2B, ${name}! 🌸\n\nYour personal assistant for wholesale flower orders.\n\nHere you can:\n✅ Browse current assortment in real-time\n✅ Check personal prices (including discounts)\n✅ Place orders in minutes\n✅ Track your order status\n✅ Earn bonuses with our loyalty program\n\nSelect a menu item to get started:`,
+    welcome: (name: string) => `Welcome, ${name}! 🌸\n\nHere you can:\n✅ Browse assortment\n✅ Check personal prices\n✅ Place orders\n✅ Earn bonuses\n\nSelect a menu item:`,
     selectLanguage: '🌐 Оберіть мову / Select language:',
     selectCity: '📍 Enter your city:',
     selectType: '🏪 Select customer type:',
@@ -214,7 +242,7 @@ const t = {
     quantity: 'Quantity'
   },
   ru: {
-    welcome: (name: string) => `Добро пожаловать во FlowerB2B, ${name}! 🌸\n\nВаш персональный помощник для оптовых заказов цветов.\n\nЗдесь вы можете:\n✅ Просматривать актуальный ассортимент в реальном времени\n✅ Узнавать персональные цены (с учетом скидок)\n✅ Формировать заказы за считанные минуты\n✅ Отслеживать статус своих заявок\n✅ Накапливать бонусы по программе лояльности\n\nВыберите пункт меню для начала работы:`,
+    welcome: (name: string) => `Приветствуем, ${name}! 🌸\n\nЗдесь вы можете:\n✅ Посмотреть ассортимент\n✅ Узнать персональные цены\n✅ Оформить заказ\n✅ Накопить бонусы\n\nВыберите пункт меню:`,
     selectLanguage: '🌐 Оберіть мову / Select language:',
     selectCity: '📍 Введите ваш город:',
     selectType: '🏪 Выберите тип клиента:',
@@ -405,7 +433,7 @@ if (bot) {
     } else if (session.step === 'menu') {
       // Search functionality
       const searchTerm = ctx.message.text.toLowerCase();
-      const products = await storage.getProducts();
+      const products = await getCachedProducts();
       const found = products.filter(p => 
         p.name.toLowerCase().includes(searchTerm) || 
         p.variety.toLowerCase().includes(searchTerm)
@@ -526,7 +554,7 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    const products = await storage.getProducts();
+    const products = await getCachedProducts();
     const filtered = products.filter(p => 
       p.countryId === countryId && 
       p.typeId === typeId &&
@@ -586,7 +614,7 @@ if (bot) {
       return;
     }
     
-    const products = await storage.getProducts();
+    const products = await getCachedProducts();
     for (const productId of session.favorites) {
       const product = products.find(p => p.id === productId);
       if (product) {
@@ -654,7 +682,7 @@ if (bot) {
     const telegramId = ctx.from!.id.toString();
     
     // Create order in storage
-    const products = await storage.getProducts();
+    const products = await getCachedProducts();
     let total = 0;
     const items = [];
     
@@ -742,7 +770,7 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    const products = await storage.getProducts();
+    const products = await getCachedProducts();
     const promos = products.filter(p => p.isPromo);
     
     if (promos.length === 0) {
