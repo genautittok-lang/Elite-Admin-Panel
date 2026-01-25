@@ -22,8 +22,15 @@ interface UserSession {
   favorites: string[];
   step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'awaiting_confirmation';
   currentCountry?: string;
+  currentFarm?: string;
   currentType?: string;
   currentProduct?: string;
+  currentCatalogType?: 'preorder' | 'instock';
+  filters?: {
+    flowerClass?: string;
+    height?: string;
+    color?: string;
+  };
   lastInteraction: number;
   checkoutData?: {
     name?: string;
@@ -350,6 +357,109 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
     }
   } else {
     await ctx.reply(txt.welcome(firstName), keyboard);
+  }
+}
+
+// Helper function to show filter menu
+async function showFilterMenu(ctx: Context, session: UserSession) {
+  const txt = getText(session);
+  const catalogType = session.currentCatalogType || 'preorder';
+  
+  // Validate session state
+  if (!session.currentFarm || !session.currentType || !session.currentCountry) {
+    await ctx.editMessageText(
+      '❌ Сесія застаріла. Почніть з початку.',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('🌹 Каталог', 'catalog')],
+        [Markup.button.callback('🏠 Меню', 'menu')]
+      ])
+    );
+    return;
+  }
+  
+  // Get all products for this selection
+  const products = await getCachedProducts();
+  const baseProducts = products.filter(p => 
+    p.plantationId === session.currentFarm &&
+    p.typeId === session.currentType &&
+    p.catalogType === catalogType
+  );
+  
+  const currentFilters = session.filters || {};
+  
+  // Apply current filters to get filtered products
+  let filteredProducts = [...baseProducts];
+  if (currentFilters.flowerClass) {
+    filteredProducts = filteredProducts.filter(p => p.flowerClass === currentFilters.flowerClass);
+  }
+  if (currentFilters.height) {
+    filteredProducts = filteredProducts.filter(p => p.height === parseInt(currentFilters.height as string));
+  }
+  if (currentFilters.color) {
+    filteredProducts = filteredProducts.filter(p => p.color === currentFilters.color);
+  }
+  
+  // Get available filter options from currently filtered products
+  const classes = Array.from(new Set(baseProducts.map(p => p.flowerClass)));
+  const heights = Array.from(new Set(baseProducts.map(p => p.height))).sort((a, b) => a - b);
+  const colors = Array.from(new Set(baseProducts.map(p => p.color)));
+  
+  let message = '🔍 *Фільтри:*\n\n';
+  
+  if (currentFilters.flowerClass) message += `✓ Клас: ${currentFilters.flowerClass}\n`;
+  if (currentFilters.height) message += `✓ Висота: ${currentFilters.height} см\n`;
+  if (currentFilters.color) message += `✓ Колір: ${currentFilters.color}\n`;
+  
+  message += `\n📊 Знайдено товарів: ${filteredProducts.length}`;
+  
+  const buttons: any[] = [];
+  
+  // Class filter
+  if (classes.length > 1) {
+    buttons.push([Markup.button.callback(
+      currentFilters.flowerClass ? `✓ Клас: ${currentFilters.flowerClass}` : '📊 Клас', 
+      'filter_class'
+    )]);
+  }
+  
+  // Height filter
+  if (heights.length > 1) {
+    buttons.push([Markup.button.callback(
+      currentFilters.height ? `✓ Висота: ${currentFilters.height} см` : '📏 Висота', 
+      'filter_height'
+    )]);
+  }
+  
+  // Color filter
+  if (colors.length > 1) {
+    buttons.push([Markup.button.callback(
+      currentFilters.color ? `✓ Колір: ${currentFilters.color}` : '🎨 Колір', 
+      'filter_color'
+    )]);
+  }
+  
+  // Show products button
+  buttons.push([Markup.button.callback(`👀 Показати товари (${filteredProducts.length})`, 'show_filtered_products')]);
+  
+  // Clear filters if any are set
+  if (currentFilters.flowerClass || currentFilters.height || currentFilters.color) {
+    buttons.push([Markup.button.callback('🔄 Скинути фільтри', 'clear_filters')]);
+  }
+  
+  // Safe back navigation - to farm selection for current country
+  buttons.push([Markup.button.callback('◀️ До ферм', `country_${catalogType}_${session.currentCountry}`)]);
+  buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
+  
+  try {
+    await ctx.editMessageText(message, { 
+      parse_mode: 'Markdown', 
+      ...Markup.inlineKeyboard(buttons) 
+    });
+  } catch {
+    await ctx.reply(message, { 
+      parse_mode: 'Markdown', 
+      ...Markup.inlineKeyboard(buttons) 
+    });
   }
 }
 
@@ -694,11 +804,13 @@ if (bot) {
     );
   });
 
-  // Country selection - show only flower types that have products
+  // Country selection - show farms/plantations from this country
   bot.action(/^country_(.+)_(.+)$/, async (ctx) => {
     const [catalogType, countryId] = [ctx.match[1], ctx.match[2]];
     const session = getSession(ctx.from!.id.toString());
     session.currentCountry = countryId;
+    session.currentCatalogType = catalogType as 'preorder' | 'instock';
+    session.filters = {}; // Reset filters
     const txt = getText(session);
     await ctx.answerCbQuery();
     
@@ -709,16 +821,16 @@ if (bot) {
       p.catalogType === catalogType
     );
     
-    // Get unique flower type IDs that have products
-    const typeIdsWithProducts = Array.from(new Set(countryProducts.map(p => p.typeId)));
+    // Get unique farm/plantation IDs that have products
+    const farmIdsWithProducts = Array.from(new Set(countryProducts.map(p => p.plantationId).filter(Boolean)));
     
-    // Filter flower types to only show those with products
-    const allTypes = await storage.getFlowerTypes();
-    const typesWithProducts = allTypes.filter(t => typeIdsWithProducts.includes(t.id));
+    // Get all plantations and filter to those with products
+    const allPlantations = await storage.getPlantations();
+    const farmsWithProducts = allPlantations.filter(f => farmIdsWithProducts.includes(f.id));
     
-    if (typesWithProducts.length === 0) {
+    if (farmsWithProducts.length === 0) {
       await ctx.editMessageText(
-        '❌ В цій країні немає товарів в наявності',
+        '❌ В цій країні немає ферм з товарами',
         Markup.inlineKeyboard([
           [Markup.button.callback(txt.back, `catalog_${catalogType}`)],
           [Markup.button.callback('🏠 Меню', 'menu')]
@@ -727,18 +839,258 @@ if (bot) {
       return;
     }
     
-    const buttons = typesWithProducts.map(t => [
-      Markup.button.callback(t.name, `t_${catalogType === 'preorder' ? 'p' : 'i'}_${countryId.substring(0, 8)}_${t.id.substring(0, 8)}`)
+    const buttons = farmsWithProducts.map(f => [
+      Markup.button.callback(`🏡 ${f.name}`, `farm_${f.id.substring(0, 12)}`)
     ]);
     buttons.push([Markup.button.callback(txt.back, `catalog_${catalogType}`)]);
     buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
     
     await ctx.editMessageText(
-      `Тип квітів:`,
-      Markup.inlineKeyboard(buttons)
+      `🏡 *Оберіть ферму:*`,
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
     );
   });
 
+  // Farm selection - show flower types from this farm
+  bot.action(/^farm_(.+)$/, async (ctx) => {
+    const farmPart = ctx.match[1];
+    const session = getSession(ctx.from!.id.toString());
+    const txt = getText(session);
+    await ctx.answerCbQuery();
+    
+    // Find full farm ID
+    const allPlantations = await storage.getPlantations();
+    const farm = allPlantations.find(f => f.id.startsWith(farmPart));
+    if (!farm) {
+      await ctx.answerCbQuery('Ферму не знайдено');
+      return;
+    }
+    
+    session.currentFarm = farm.id;
+    const catalogType = session.currentCatalogType || 'preorder';
+    
+    // Get products for this farm and catalog type
+    const products = await getCachedProducts();
+    const farmProducts = products.filter(p => 
+      p.plantationId === farm.id && 
+      p.catalogType === catalogType
+    );
+    
+    // Get unique flower type IDs
+    const typeIdsWithProducts = Array.from(new Set(farmProducts.map(p => p.typeId)));
+    
+    const allTypes = await storage.getFlowerTypes();
+    const typesWithProducts = allTypes.filter(t => typeIdsWithProducts.includes(t.id));
+    
+    if (typesWithProducts.length === 0) {
+      await ctx.editMessageText(
+        '❌ На цій фермі немає товарів',
+        Markup.inlineKeyboard([
+          [Markup.button.callback(txt.back, `country_${catalogType}_${session.currentCountry}`)],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ])
+      );
+      return;
+    }
+    
+    const buttons = typesWithProducts.map(t => [
+      Markup.button.callback(`🌸 ${t.name}`, `ftype_${t.id.substring(0, 12)}`)
+    ]);
+    buttons.push([Markup.button.callback(txt.back, `country_${catalogType}_${session.currentCountry}`)]);
+    buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
+    
+    await ctx.editMessageText(
+      `🌸 *Оберіть тип квітів:*\n\n🏡 Ферма: ${farm.name}`,
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+    );
+  });
+
+  // Flower type selection from farm - show filter options
+  bot.action(/^ftype_(.+)$/, async (ctx) => {
+    const typePart = ctx.match[1];
+    const session = getSession(ctx.from!.id.toString());
+    const txt = getText(session);
+    await ctx.answerCbQuery();
+    
+    const allTypes = await storage.getFlowerTypes();
+    const flowerType = allTypes.find(t => t.id.startsWith(typePart));
+    if (!flowerType) {
+      await ctx.answerCbQuery('Тип не знайдено');
+      return;
+    }
+    
+    session.currentType = flowerType.id;
+    session.filters = {};
+    
+    // Show filter menu
+    await showFilterMenu(ctx, session);
+  });
+
+  // Filter handlers
+  bot.action('filter_class', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const catalogType = session.currentCatalogType || 'preorder';
+    await ctx.answerCbQuery();
+    
+    const products = await getCachedProducts();
+    const filtered = products.filter(p => 
+      p.plantationId === session.currentFarm &&
+      p.typeId === session.currentType &&
+      p.catalogType === catalogType
+    );
+    
+    const classes = Array.from(new Set(filtered.map(p => p.flowerClass)));
+    
+    const buttons = classes.map(c => [
+      Markup.button.callback(c, `set_class_${c}`)
+    ]);
+    buttons.push([Markup.button.callback('◀️ Назад', 'back_to_filters')]);
+    
+    await ctx.editMessageText(
+      '📊 *Оберіть клас:*',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+    );
+  });
+
+  bot.action(/^set_class_(.+)$/, async (ctx) => {
+    const flowerClass = ctx.match[1];
+    const session = getSession(ctx.from!.id.toString());
+    session.filters = session.filters || {};
+    session.filters.flowerClass = flowerClass;
+    await ctx.answerCbQuery(`Обрано: ${flowerClass}`);
+    await showFilterMenu(ctx, session);
+  });
+
+  bot.action('filter_height', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const catalogType = session.currentCatalogType || 'preorder';
+    await ctx.answerCbQuery();
+    
+    const products = await getCachedProducts();
+    const filtered = products.filter(p => 
+      p.plantationId === session.currentFarm &&
+      p.typeId === session.currentType &&
+      p.catalogType === catalogType
+    );
+    
+    const heights = Array.from(new Set(filtered.map(p => p.height))).sort((a, b) => a - b);
+    
+    const buttons = heights.map(h => [
+      Markup.button.callback(`${h} см`, `set_height_${h}`)
+    ]);
+    buttons.push([Markup.button.callback('◀️ Назад', 'back_to_filters')]);
+    
+    await ctx.editMessageText(
+      '📏 *Оберіть висоту:*',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+    );
+  });
+
+  bot.action(/^set_height_(\d+)$/, async (ctx) => {
+    const height = ctx.match[1];
+    const session = getSession(ctx.from!.id.toString());
+    session.filters = session.filters || {};
+    session.filters.height = height;
+    await ctx.answerCbQuery(`Обрано: ${height} см`);
+    await showFilterMenu(ctx, session);
+  });
+
+  bot.action('filter_color', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const catalogType = session.currentCatalogType || 'preorder';
+    await ctx.answerCbQuery();
+    
+    const products = await getCachedProducts();
+    const filtered = products.filter(p => 
+      p.plantationId === session.currentFarm &&
+      p.typeId === session.currentType &&
+      p.catalogType === catalogType
+    );
+    
+    const colors = Array.from(new Set(filtered.map(p => p.color)));
+    
+    const buttons = colors.map(c => [
+      Markup.button.callback(c, `set_color_${c}`)
+    ]);
+    buttons.push([Markup.button.callback('◀️ Назад', 'back_to_filters')]);
+    
+    await ctx.editMessageText(
+      '🎨 *Оберіть колір:*',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+    );
+  });
+
+  bot.action(/^set_color_(.+)$/, async (ctx) => {
+    const color = ctx.match[1];
+    const session = getSession(ctx.from!.id.toString());
+    session.filters = session.filters || {};
+    session.filters.color = color;
+    await ctx.answerCbQuery(`Обрано: ${color}`);
+    await showFilterMenu(ctx, session);
+  });
+
+  bot.action('clear_filters', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    session.filters = {};
+    await ctx.answerCbQuery('Фільтри скинуто');
+    await showFilterMenu(ctx, session);
+  });
+
+  bot.action('back_to_filters', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    await showFilterMenu(ctx, session);
+  });
+
+  // Show filtered products
+  bot.action('show_filtered_products', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const txt = getText(session);
+    const catalogType = session.currentCatalogType || 'preorder';
+    await ctx.answerCbQuery();
+    
+    const products = await getCachedProducts();
+    let filtered = products.filter(p => 
+      p.plantationId === session.currentFarm &&
+      p.typeId === session.currentType &&
+      p.catalogType === catalogType
+    );
+    
+    // Apply filters
+    const filters = session.filters || {};
+    if (filters.flowerClass) {
+      filtered = filtered.filter(p => p.flowerClass === filters.flowerClass);
+    }
+    if (filters.height) {
+      filtered = filtered.filter(p => p.height === parseInt(filters.height as string));
+    }
+    if (filters.color) {
+      filtered = filtered.filter(p => p.color === filters.color);
+    }
+    
+    if (filtered.length === 0) {
+      await ctx.editMessageText(
+        txt.noProducts,
+        Markup.inlineKeyboard([
+          [Markup.button.callback('🔄 Змінити фільтри', 'back_to_filters')],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ])
+      );
+      return;
+    }
+    
+    // Delete the filter message and send product cards
+    try { await ctx.deleteMessage(); } catch {}
+    for (const product of filtered.slice(0, 10)) {
+      await sendProductCard(ctx, product, session);
+    }
+    
+    if (filtered.length > 10) {
+      await ctx.reply(`Показано 10 з ${filtered.length} товарів`);
+    }
+  });
+
+  // Keep old handler for backwards compatibility with direct catalog selection
   // Flower type selection - show products
   bot.action(/^t_(p|i)_(.+)_(.+)$/, async (ctx) => {
     const [catCode, countryPart, typePart] = [ctx.match[1], ctx.match[2], ctx.match[3]];

@@ -132,8 +132,8 @@ export default function Plantations() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Плантації</h1>
-          <p className="text-muted-foreground">Ферми та плантації квітів</p>
+          <h1 className="text-2xl font-bold">Плантації (Ферми)</h1>
+          <p className="text-muted-foreground">Ферми-постачальники квітів</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
@@ -204,6 +204,25 @@ export default function Plantations() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Card className="bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+        <CardContent className="pt-6">
+          <div className="flex gap-4">
+            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+              <Factory className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-green-800 dark:text-green-200">Що таке плантації/ферми?</h3>
+              <ul className="mt-2 text-sm text-green-700 dark:text-green-300 space-y-1">
+                <li>Ферми - це постачальники квітів з різних країн</li>
+                <li>Кожна ферма належить до певної країни</li>
+                <li>При створенні товару вказуйте ферму-постачальника</li>
+                <li>В Telegram боті: Країна → Ферма → Тип квітів → Сорти</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="pt-6">

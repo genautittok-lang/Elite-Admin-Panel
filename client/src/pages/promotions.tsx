@@ -48,6 +48,25 @@ export default function Promotions() {
         <p className="text-muted-foreground">Управління акційними товарами</p>
       </div>
 
+      <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+        <CardContent className="pt-6">
+          <div className="flex gap-4">
+            <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <Flame className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-amber-800 dark:text-amber-200">Як працюють акції?</h3>
+              <ul className="mt-2 text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                <li>1. Увімкніть перемикач "Акція" для товару</li>
+                <li>2. Товар з'явиться в розділі "Акції" Telegram бота</li>
+                <li>3. Клієнти бачитимуть бейдж "АКЦІЯ" на картці товару</li>
+                <li>4. Вимкніть перемикач, щоб прибрати товар з акцій</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="pt-6">
