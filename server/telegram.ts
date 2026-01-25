@@ -426,8 +426,8 @@ if (bot) {
       await ctx.reply(
         txt.selectType,
         Markup.inlineKeyboard([
-          [Markup.button.callback(txt.flowerShop, 'type_flower_shop')],
-          [Markup.button.callback(txt.wholesale, 'type_wholesale')]
+          [Markup.button.callback(txt.flowerShop, 'cust_flower_shop')],
+          [Markup.button.callback(txt.wholesale, 'cust_wholesale')]
         ])
       );
     } else if (session.step === 'menu') {
@@ -450,7 +450,7 @@ if (bot) {
   });
 
   // Customer type selection (onboarding - create customer)
-  bot.action(/^type_(flower_shop|wholesale)$/, async (ctx) => {
+  bot.action(/^cust_(flower_shop|wholesale)$/, async (ctx) => {
     const type = ctx.match[1] as 'flower_shop' | 'wholesale';
     const telegramId = ctx.from!.id.toString();
     const session = getSession(telegramId);
