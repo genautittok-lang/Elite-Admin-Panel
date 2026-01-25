@@ -71,10 +71,12 @@ export type CustomerType = typeof customerTypes[number];
 export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   telegramId: text("telegram_id").unique(),
+  telegramUsername: text("telegram_username"),
   name: text("name").notNull(),
   phone: text("phone"),
   shopName: text("shop_name"),
   city: text("city"),
+  address: text("address"),
   customerType: text("customer_type").notNull().default("flower_shop"),
   language: text("language").default("ua"),
   loyaltyPoints: integer("loyalty_points").default(0),

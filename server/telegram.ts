@@ -20,11 +20,16 @@ interface UserSession {
   customerType?: 'flower_shop' | 'wholesale';
   cart: { productId: string; quantity: number }[];
   favorites: string[];
-  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order';
+  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'awaiting_confirmation';
   currentCountry?: string;
   currentType?: string;
   currentProduct?: string;
   lastInteraction: number;
+  checkoutData?: {
+    name?: string;
+    phone?: string;
+    address?: string;
+  };
 }
 
 const sessions: Map<string, UserSession> = new Map();
@@ -413,10 +418,28 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
 }
 
 if (bot) {
-  // Start command - language selection
+  // Start command - check if user exists, skip onboarding if yes
   bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
     const session = getSession(telegramId);
+    
+    // Check if customer already exists in database
+    const customers = await storage.getCustomers();
+    const existingCustomer = customers.find(c => c.telegramId === telegramId);
+    
+    if (existingCustomer) {
+      // Restore session from customer data
+      session.language = (existingCustomer.language as 'ua' | 'en' | 'ru') || 'ua';
+      session.city = existingCustomer.city || '';
+      session.customerType = (existingCustomer.customerType as 'flower_shop' | 'wholesale') || 'flower_shop';
+      session.step = 'menu';
+      
+      // Go directly to main menu
+      await showMainMenu(ctx, session);
+      return;
+    }
+    
+    // New user - start onboarding
     session.step = 'language';
     
     await ctx.reply(
@@ -442,7 +465,7 @@ if (bot) {
     await ctx.editMessageText(txt.selectCity);
   });
 
-  // City input (text handler)
+  // Text input handler (city, search, checkout)
   bot.on('text', async (ctx) => {
     const telegramId = ctx.from.id.toString();
     const session = getSession(telegramId);
@@ -459,6 +482,70 @@ if (bot) {
           [Markup.button.callback(txt.wholesale, 'cust_wholesale')]
         ])
       );
+    } else if (session.step === 'checkout_name') {
+      // Collect name
+      session.checkoutData = session.checkoutData || {};
+      session.checkoutData.name = ctx.message.text;
+      session.step = 'checkout_phone';
+      
+      await ctx.reply(
+        '📞 Введіть ваш *номер телефону*:',
+        { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+          [Markup.button.callback('❌ Скасувати', 'cart')]
+        ])}
+      );
+    } else if (session.step === 'checkout_phone') {
+      // Collect phone
+      session.checkoutData = session.checkoutData || {};
+      session.checkoutData.phone = ctx.message.text;
+      session.step = 'checkout_address';
+      
+      await ctx.reply(
+        '📍 Введіть *адресу доставки*:',
+        { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+          [Markup.button.callback('❌ Скасувати', 'cart')]
+        ])}
+      );
+    } else if (session.step === 'checkout_address') {
+      // Collect address and show summary
+      session.checkoutData = session.checkoutData || {};
+      session.checkoutData.address = ctx.message.text;
+      session.step = 'awaiting_confirmation';
+      
+      // Calculate cart total for summary
+      const products = await getCachedProducts();
+      let total = 0;
+      let itemsSummary = '';
+      
+      for (const item of session.cart) {
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+          const price = await calculatePriceAsync(product, session);
+          total += price * item.quantity;
+          itemsSummary += `• ${product.name} x${item.quantity}\n`;
+        }
+      }
+      
+      // Escape markdown special chars in user input
+      const escapeMd = (text: string) => text.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+      
+      // Show order summary for confirmation
+      let summary = '📋 *ПІДТВЕРДЖЕННЯ ЗАМОВЛЕННЯ*\n';
+      summary += '━━━━━━━━━━━━━━━━━━\n\n';
+      summary += `👤 *Ім\'я:* ${escapeMd(session.checkoutData.name || '')}\n`;
+      summary += `📞 *Телефон:* ${escapeMd(session.checkoutData.phone || '')}\n`;
+      summary += `📍 *Адреса:* ${escapeMd(session.checkoutData.address || '')}\n\n`;
+      summary += `📦 *Товари:*\n${itemsSummary}\n`;
+      summary += `💵 *Сума:* ${total.toLocaleString('uk-UA')} грн\n`;
+      
+      await ctx.reply(summary, { 
+        parse_mode: 'Markdown', 
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('✅ Підтвердити', 'confirm_order')],
+          [Markup.button.callback('✏️ Змінити дані', 'checkout')],
+          [Markup.button.callback('❌ Скасувати', 'cart')]
+        ])
+      });
     } else if (session.step === 'menu') {
       // Search functionality
       const searchTerm = ctx.message.text.toLowerCase();
@@ -482,6 +569,7 @@ if (bot) {
   bot.action(/^cust_(flower_shop|wholesale)$/, async (ctx) => {
     const type = ctx.match[1] as 'flower_shop' | 'wholesale';
     const telegramId = ctx.from!.id.toString();
+    const telegramUsername = ctx.from!.username || '';
     const session = getSession(telegramId);
     session.customerType = type;
     session.step = 'menu';
@@ -493,6 +581,7 @@ if (bot) {
     if (!customer) {
       customer = await storage.createCustomer({
         telegramId,
+        telegramUsername,
         name: ctx.from!.first_name || 'Telegram User',
         phone: '',
         shopName: '',
@@ -503,10 +592,11 @@ if (bot) {
       });
     } else {
       await storage.updateCustomer(customer.id, {
+        telegramUsername,
         city: session.city,
         customerType: type,
         language: session.language
-      });
+      } as any);
     }
     
     await ctx.answerCbQuery();
@@ -755,11 +845,30 @@ if (bot) {
     await showMainMenu(ctx, session);
   });
 
-  // Checkout
+  // Checkout - start contact details collection
   bot.action('checkout', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
     const txt = getText(session);
+    await ctx.answerCbQuery();
+    
+    // Start collecting contact details
+    session.step = 'checkout_name';
+    session.checkoutData = {};
+    
+    await ctx.reply(
+      '📝 *ОФОРМЛЕННЯ ЗАМОВЛЕННЯ*\n━━━━━━━━━━━━━━━━━━\n\nВведіть ваше *ім\'я та прізвище*:',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+        [Markup.button.callback('❌ Скасувати', 'cart')]
+      ])}
+    );
+  });
+  
+  // Finalize checkout (after collecting contact details)
+  bot.action('confirm_order', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const txt = getText(session);
     const telegramId = ctx.from!.id.toString();
+    await ctx.answerCbQuery();
     
     // Create order in storage
     const products = await getCachedProducts();
@@ -779,18 +888,29 @@ if (bot) {
     // Find or create customer
     const customers = await storage.getCustomers();
     let customer = customers.find(c => c.telegramId === telegramId);
+    const checkoutData = session.checkoutData || {};
     
     if (!customer) {
       customer = await storage.createCustomer({
         telegramId,
-        name: ctx.from!.first_name || 'Telegram User',
-        phone: '',
+        telegramUsername: ctx.from!.username || '',
+        name: checkoutData.name || ctx.from!.first_name || 'Telegram User',
+        phone: checkoutData.phone || '',
         shopName: '',
         city: session.city || '',
+        address: checkoutData.address || '',
         customerType: session.customerType || 'flower_shop',
         language: session.language,
         isBlocked: false
       });
+    } else {
+      // Update customer with new contact info
+      await storage.updateCustomer(customer.id, {
+        name: checkoutData.name || customer.name,
+        phone: checkoutData.phone || customer.phone,
+        address: checkoutData.address || customer.address,
+        telegramUsername: ctx.from!.username || customer.telegramUsername
+      } as any);
     }
     
     // Apply existing discount (from previous 10th order)

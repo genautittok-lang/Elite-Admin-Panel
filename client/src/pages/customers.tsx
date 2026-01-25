@@ -235,6 +235,7 @@ export default function Customers() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead>Клієнт</TableHead>
+                    <TableHead>Telegram</TableHead>
                     <TableHead>Тип</TableHead>
                     <TableHead>Місто</TableHead>
                     <TableHead>Замовлень</TableHead>
@@ -270,6 +271,21 @@ export default function Customers() {
                             </p>
                           </div>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {(customer as any).telegramUsername ? (
+                          <a 
+                            href={`https://t.me/${(customer as any).telegramUsername}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-foreground hover:underline"
+                            data-testid={`link-telegram-${customer.id}`}
+                          >
+                            @{(customer as any).telegramUsername}
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">

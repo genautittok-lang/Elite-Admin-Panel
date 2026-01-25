@@ -1,4 +1,5 @@
 import { useLocation, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Package,
@@ -24,10 +25,12 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
+import type { Order } from "@shared/schema";
 
 const mainMenuItems = [
   { title: "Дашборд", url: "/", icon: LayoutDashboard },
-  { title: "Замовлення", url: "/orders", icon: ShoppingCart },
+  { title: "Замовлення", url: "/orders", icon: ShoppingCart, showBadge: true },
   { title: "Клієнти", url: "/customers", icon: Users },
   { title: "Аналітика", url: "/analytics", icon: BarChart3 },
 ];
@@ -47,6 +50,14 @@ const settingsMenuItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  
+  // Fetch new orders count for badge
+  const { data: orders } = useQuery<Order[]>({
+    queryKey: ['/api/orders'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+  
+  const newOrdersCount = orders?.filter(o => o.status === 'new').length || 0;
 
   return (
     <Sidebar>
@@ -74,9 +85,16 @@ export function AppSidebar() {
                     isActive={location === item.url}
                     data-testid={`nav-${item.url.replace("/", "") || "dashboard"}`}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                    <Link href={item.url} className="flex items-center justify-between w-full">
+                      <span className="flex items-center gap-2">
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </span>
+                      {item.showBadge && newOrdersCount > 0 && (
+                        <Badge variant="destructive" data-testid="badge-new-orders">
+                          {newOrdersCount}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
