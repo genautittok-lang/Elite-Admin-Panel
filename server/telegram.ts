@@ -564,7 +564,10 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   }
 }
 
-if (bot) {
+// TEMPORARILY DISABLED FOR RAILWAY DEBUGGING
+const DISABLE_BOT_FOR_DEBUGGING = true;
+
+if (bot && !DISABLE_BOT_FOR_DEBUGGING) {
   // Start command - check if user exists, skip onboarding if yes
   bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
