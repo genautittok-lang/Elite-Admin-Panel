@@ -391,9 +391,26 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   if (product.images && product.images.length > 0) {
     const imagePath = product.images[0];
     try {
-      // Check if it's a local file path
-      if (imagePath.startsWith('attached_assets/') || imagePath.startsWith('./')) {
-        const fullPath = path.resolve(process.cwd(), imagePath);
+      // Get base URL for production (Railway provides RAILWAY_PUBLIC_DOMAIN)
+      const baseUrl = process.env.BASE_URL || 
+                      (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null);
+      
+      // For /uploads/ path in production, use public URL
+      if (imagePath.startsWith('/uploads/') && baseUrl) {
+        const imageUrl = `${baseUrl}${imagePath}`;
+        await ctx.replyWithPhoto(imageUrl, {
+          caption: message,
+          parse_mode: 'Markdown',
+          reply_markup: buttons.reply_markup
+        });
+        return;
+      }
+      
+      // Check if it's a local file path (attached_assets, uploads in dev)
+      if (imagePath.startsWith('attached_assets/') || imagePath.startsWith('./') || imagePath.startsWith('/uploads/')) {
+        // For /uploads/ path, strip the leading slash
+        const relativePath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+        const fullPath = path.resolve(process.cwd(), relativePath);
         if (fs.existsSync(fullPath)) {
           await ctx.replyWithPhoto(
             { source: fullPath },

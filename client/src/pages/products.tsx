@@ -504,20 +504,54 @@ export default function Products() {
                         </button>
                       </div>
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const url = prompt("Введіть URL зображення:");
-                        if (url) {
-                          const current = form.getValues("images") || [];
-                          form.setValue("images", [...current, url]);
-                        }
-                      }}
-                      className="aspect-square rounded-md border border-dashed flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    <label
+                      className="aspect-square rounded-md border border-dashed flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
                     >
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        data-testid="input-product-image-upload"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (!files || files.length === 0) return;
+                          
+                          for (const file of Array.from(files)) {
+                            const formData = new FormData();
+                            formData.append('image', file);
+                            
+                            try {
+                              const response = await fetch('/api/upload', {
+                                method: 'POST',
+                                body: formData,
+                              });
+                              
+                              if (response.ok) {
+                                const data = await response.json();
+                                const current = form.getValues("images") || [];
+                                form.setValue("images", [...current, data.url]);
+                              } else {
+                                toast({
+                                  title: "Помилка",
+                                  description: "Не вдалося завантажити зображення",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Помилка",
+                                description: "Не вдалося завантажити зображення",
+                                variant: "destructive",
+                              });
+                            }
+                          }
+                          e.target.value = '';
+                        }}
+                      />
                       <ImagePlus className="h-6 w-6 mb-1" />
-                      <span className="text-[10px]">Додати</span>
-                    </button>
+                      <span className="text-[10px]">Завантажити</span>
+                    </label>
                   </div>
                 </div>
 

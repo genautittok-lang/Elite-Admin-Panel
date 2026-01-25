@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { bot, sendBulkNotification } from "./telegram";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { 
   insertCountrySchema, 
   insertPlantationSchema, 
@@ -11,6 +14,37 @@ import {
   insertCustomerSchema,
   insertOrderSchema,
 } from "@shared/schema";
+
+// Configure multer for file uploads
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage_multer = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'product-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage: storage_multer,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    }
+    cb(new Error('Only image files are allowed'));
+  }
+});
 
 // Validation middleware helper
 function validateBody<T>(schema: z.ZodSchema<T>) {
@@ -31,6 +65,38 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Serve uploaded files (in development; production handled by static.ts)
+  if (process.env.NODE_ENV !== 'production') {
+    app.use('/uploads', (await import('express')).default.static(uploadsDir));
+  }
+
+  // File upload endpoint
+  app.post("/api/upload", upload.single('image'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ url: imageUrl, filename: req.file.filename });
+    } catch (error) {
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
+  // Multiple files upload
+  app.post("/api/upload-multiple", upload.array('images', 10), (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
+      }
+      const urls = files.map(file => `/uploads/${file.filename}`);
+      res.json({ urls });
+    } catch (error) {
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
   // Dashboard
   app.get("/api/dashboard/stats", async (req, res) => {
     try {

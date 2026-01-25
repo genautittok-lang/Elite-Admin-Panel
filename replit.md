@@ -112,8 +112,60 @@
 - Оптова знижка -5% для wholesale клієнтів
 - Бейдж кількості нових замовлень в сайдбарі адмінки
 
-## Запуск
+## Локальний запуск
 ```bash
 npm run dev
 ```
 Сервер стартує на порту 5000.
+
+## Railway Deployment
+
+### Env Variables (обов'язкові)
+```
+DATABASE_URL=postgresql://...
+TELEGRAM_BOT_TOKEN=your_bot_token
+SESSION_SECRET=random_secure_string
+PORT=8080
+```
+
+### Build команди
+```bash
+npm install
+npm run build
+npm run start
+```
+
+### Налаштування Railway
+1. New Project → Deploy from GitHub
+2. Add PostgreSQL service
+3. Set environment variables
+4. Deploy!
+
+### Файли для Railway
+- `railway.json` - конфігурація деплою
+- `Procfile` - стартова команда
+- `nixpacks.toml` - налаштування збірки
+
+### Завантаження фото
+- Фото товарів зберігаються в `/uploads/`
+- Автоматичне створення директорії
+- Підтримка JPG, PNG, GIF, WebP
+- Макс. розмір: 10MB
+
+### API для завантаження
+- `POST /api/upload` - одне фото
+- `POST /api/upload-multiple` - декілька фото
+
+### Важливо про зберігання файлів
+Railway використовує ephemeral storage - файли втрачаються при редеплої.
+Для production рекомендується використовувати:
+- Cloudinary
+- AWS S3
+- Railway Volume (платно)
+
+Або зберігати зображення за URL посиланнями замість локальних файлів.
+
+### Env для зображень в боті
+Для правильного відображення фото в Telegram боті на Railway:
+- Railway автоматично встановлює RAILWAY_PUBLIC_DOMAIN
+- Або встановіть BASE_URL вручну: `https://your-domain.railway.app`
