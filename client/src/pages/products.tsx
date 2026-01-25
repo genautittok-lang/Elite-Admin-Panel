@@ -68,6 +68,7 @@ const productFormSchema = z.object({
   status: z.string().default("available"),
   catalogType: z.string().default("preorder"),
   isPromo: z.boolean().default(false),
+  images: z.array(z.string()).default([]),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -174,6 +175,7 @@ export default function Products() {
       status: product.status,
       catalogType: product.catalogType,
       isPromo: product.isPromo || false,
+      images: product.images || [],
     });
     setIsDialogOpen(true);
   };
@@ -484,6 +486,41 @@ export default function Products() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <FormLabel>Зображення</FormLabel>
+                  <div className="grid grid-cols-4 gap-2">
+                    {form.watch("images")?.map((url, index) => (
+                      <div key={index} className="relative aspect-square rounded-md overflow-hidden border group">
+                        <img src={url} alt="Product" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = form.getValues("images") || [];
+                            form.setValue("images", current.filter((_, i) => i !== index));
+                          }}
+                          className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-4 w-4 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = prompt("Введіть URL зображення:");
+                        if (url) {
+                          const current = form.getValues("images") || [];
+                          form.setValue("images", [...current, url]);
+                        }
+                      }}
+                      className="aspect-square rounded-md border border-dashed flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      <ImagePlus className="h-6 w-6 mb-1" />
+                      <span className="text-[10px]">Додати</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex justify-end gap-2 pt-4">
                   <Button
                     type="button"
@@ -587,12 +624,16 @@ export default function Products() {
                     <TableRow key={product.id} className="hover-elevate">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Flower2 className="h-5 w-5 text-primary" />
+                          <div className="w-10 h-10 rounded overflow-hidden bg-muted flex items-center justify-center border shrink-0">
+                            {product.images && product.images[0] ? (
+                              <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Flower2 className="h-5 w-5 text-muted-foreground/40" />
+                            )}
                           </div>
                           <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-xs text-muted-foreground">{product.variety}</p>
+                            <p className="font-medium line-clamp-1">{product.name}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-1">{product.variety}</p>
                           </div>
                         </div>
                       </TableCell>
