@@ -1,0 +1,47 @@
+Starting Container
+╔════════════════════════════════════════════════════════════╗
+║           🌸 FlowerB2B Database Initialization 🌸           ║
+╚════════════════════════════════════════════════════════════╝
+📡 Connecting to database...
+✅ Connected successfully!
+🗑️  Dropping old tables...
+📦 Creating new tables...
+⚙️  Inserting default settings...
+╔════════════════════════════════════════════════════════════╗
+║            ✅ Database initialized successfully!           ║
+╚════════════════════════════════════════════════════════════╝
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+║  🔧 Mode: production                                   ║
+╔════════════════════════════════════════════════════════════╗
+║              🌸 FlowerB2B Server Started 🌸                ║
+║  ✅ Status: Ready                                          ║
+╠════════════════════════════════════════════════════════════╣
+Setting up static file serving...
+║  🌐 Port: 8080                                            ║
+╚════════════════════════════════════════════════════════════╝
+Looking for build directory at: /app/dist/public
+Build directory found!
+11:15:37 PM [express] GET /api/orders 200 in 12ms :: []
+11:15:37 PM [express] GET /api/orders/recent 200 in 163ms :: []
+11:15:37 PM [express] GET /api/analytics/top-customers 200 in 161ms :: []
+11:15:37 PM [express] GET /api/analytics/top-products 200 in 165ms :: []
+11:15:37 PM [express] GET /api/dashboard/stats 200 in 171ms :: {"totalOrders":0,"totalRevenue":0,"totalCustomers":0,"totalProducts":0,"newOrdersToday":0,"revenueToday":0,"ordersChange":0,"revenueChange":0}
+11:17:02 PM [express] GET /api/analytics/top-customers 200 in 163ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","name":"Bogdan","shopName":"","totalOrders":0,"totalSpent":0}]
+11:17:02 PM [express] GET /api/orders/recent 304 in 168ms :: []
+11:17:02 PM [express] GET /api/dashboard/stats 200 in 171ms :: {"totalOrders":0,"totalRevenue":0,"totalCustomers":1,"totalProducts":0,"newOrdersToday":0,"revenueToday":0,"ordersChange":0,"revenueChange":0}
+11:17:02 PM [express] GET /api/analytics/top-products 304 in 170ms :: []
+11:17:02 PM [express] GET /api/orders 304 in 177ms :: []
+11:17:06 PM [express] GET /api/customers 200 in 3ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":false,"createdAt":"2026-01-25T23:15:54.738Z"}]
+11:17:11 PM [express] PATCH /api/customers/1b71aa1b-18a6-4241-9979-aa2d3f590e2e/block 200 in 5ms :: {"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":true,"createdAt":"2026-01-25T23:15:54.738Z"}
+11:17:11 PM [express] GET /api/customers 200 in 3ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":true,"createdAt":"2026-01-25T23:15:54.738Z"}]
+11:17:15 PM [express] PATCH /api/customers/1b71aa1b-18a6-4241-9979-aa2d3f590e2e/block 200 in 6ms :: {"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":false,"createdAt":"2026-01-25T23:15:54.738Z"}
+11:17:15 PM [express] GET /api/customers 200 in 3ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":false,"createdAt":"2026-01-25T23:15:54.738Z"}]
+11:17:23 PM [express] PATCH /api/customers/1b71aa1b-18a6-4241-9979-aa2d3f590e2e/block 200 in 5ms :: {"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":true,"createdAt":"2026-01-25T23:15:54.738Z"}
+11:17:23 PM [express] GET /api/customers 200 in 3ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":true,"createdAt":"2026-01-25T23:15:54.738Z"}]
+11:17:29 PM [express] PATCH /api/customers/1b71aa1b-18a6-4241-9979-aa2d3f590e2e/block 200 in 3ms :: {"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":false,"createdAt":"2026-01-25T23:15:54.738Z"}
+11:17:29 PM [express] GET /api/customers 200 in 2ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","telegramId":"7820995179","telegramUsername":"bogdan_OP24","name":"Bogdan","phone":"","shopName":"","city":"Вінниця","address":null,"customerType":"flower_shop","language":"ua","loyaltyPoints":0,"totalOrders":0,"totalSpent":"0.00","nextOrderDiscount":"0.00","isBlocked":false,"createdAt":"2026-01-25T23:15:54.738Z"}]
+11:17:32 PM [express] GET /api/orders 304 in 7ms :: []
+11:17:37 PM [express] GET /api/products 200 in 7ms :: []
+11:17:42 PM [express] POST /api/notifications/send 200 in 34ms :: {"sent":1,"message":"Notifications sent"}
