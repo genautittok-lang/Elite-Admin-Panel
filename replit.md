@@ -134,29 +134,33 @@ npm run dev
 
 ### Env Variables (обов'язкові)
 ```
-DATABASE_URL=postgresql://...
+DATABASE_URL=postgresql://...  (автоматично від Railway PostgreSQL)
 TELEGRAM_BOT_TOKEN=your_bot_token
 SESSION_SECRET=random_secure_string
-PORT=8080
 ```
 
-### Build команди
-```bash
-npm install
-npm run build
-npm run start
-```
+**Примітка:** PORT=8080 встановлюється автоматично Railway.
 
-### Налаштування Railway
-1. New Project → Deploy from GitHub
-2. Add PostgreSQL service
-3. Set environment variables
-4. Deploy!
+### Крок за кроком
+1. **New Project** → Deploy from GitHub → вибрати репозиторій
+2. **Add PostgreSQL**: New → Database → PostgreSQL
+3. **Зв'язати DATABASE_URL**: Variables → Add Reference → вибрати DATABASE_URL з PostgreSQL сервісу
+4. **Додати секрети**: Variables → додати TELEGRAM_BOT_TOKEN та SESSION_SECRET
+5. **Settings → Networking**: переконатися що Public Networking ввімкнено
+6. **Settings → Deploy**: 
+   - Healthcheck Path: **залишити порожнім** (не вказувати!)
+   - Restart Policy: On Failure (3 retries)
+7. **Deploy!**
 
 ### Файли для Railway
-- `railway.json` - конфігурація деплою
-- `Procfile` - стартова команда
-- `nixpacks.toml` - налаштування збірки
+- `railway.json` - конфігурація деплою (без healthcheck!)
+- `Procfile` - стартова команда: `web: npm run start`
+- `nixpacks.toml` - налаштування збірки (Node.js 20)
+
+### Важливо!
+- **НЕ вказуйте Healthcheck Path** в Railway Settings - це викликає проблеми
+- Сервер слухає на `0.0.0.0:8080` (правильно для Railway)
+- Build автоматично через nixpacks.toml
 
 ### Завантаження фото
 - Фото товарів зберігаються в `/uploads/`
