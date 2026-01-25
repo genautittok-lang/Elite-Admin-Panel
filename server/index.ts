@@ -102,6 +102,9 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "8080", 10);
+  console.log(`Environment PORT: ${process.env.PORT}, using port: ${port}`);
+  console.log(`Environment NODE_ENV: ${process.env.NODE_ENV}`);
+  
   httpServer.listen(
     {
       port,
@@ -109,6 +112,7 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port} (Ready for healthcheck)`);
+      console.log(`Server is listening on 0.0.0.0:${port}`);
     },
   );
 })();
