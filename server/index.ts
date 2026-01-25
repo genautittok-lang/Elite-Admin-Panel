@@ -24,7 +24,14 @@ app.use(express.urlencoded({ extended: false }));
 
 // Healthcheck for Railway - ABSOLUTE FIRST before any other routes
 app.get("/health", (_req, res) => {
+  console.log("Health check requested");
   res.status(200).send("OK");
+});
+
+// Also handle root for basic test
+app.get("/ping", (_req, res) => {
+  console.log("Ping requested");
+  res.status(200).send("pong");
 });
 
 export function log(message: string, source = "express") {

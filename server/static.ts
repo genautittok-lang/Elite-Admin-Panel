@@ -3,12 +3,17 @@ import fs from "fs";
 import path from "path";
 
 export function serveStatic(app: Express) {
+  console.log("Setting up static file serving...");
   const distPath = path.resolve(__dirname, "public");
+  console.log("Looking for build directory at:", distPath);
+  
   if (!fs.existsSync(distPath)) {
+    console.error("Build directory not found:", distPath);
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
   }
+  console.log("Build directory found!");
 
   // Serve uploaded files from uploads directory
   const uploadsPath = path.resolve(process.cwd(), "uploads");
