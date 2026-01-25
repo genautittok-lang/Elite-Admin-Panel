@@ -65,28 +65,12 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Serve uploaded files (in development; production handled by static.ts)
-  if (process.env.NODE_ENV !== 'production') {
-    app.use('/uploads', (await import('express')).default.static(uploadsDir));
-  }
-
-  // File upload endpoint
-  app.post("/api/upload", upload.single('image'), (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-      const imageUrl = `/uploads/${req.file.filename}`;
-      res.json({ url: imageUrl, filename: req.file.filename });
-    } catch (error) {
-      res.status(500).json({ error: "Upload failed" });
-    }
-  });
-
-  // Healthcheck for Railway
+  // Healthcheck for Railway - MUST BE FIRST
   app.get("/health", (_req, res) => {
     res.status(200).send("OK");
   });
+
+  // Serve uploaded files (in development; production handled by static.ts)
 
   // Multiple files upload
   app.post("/api/upload-multiple", upload.array('images', 10), (req, res) => {
