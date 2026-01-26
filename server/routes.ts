@@ -465,6 +465,28 @@ export async function registerRoutes(
           } as any);
         }
       }
+
+      // Deduct points and stats if changing FROM completed TO something else (e.g. cancelled)
+      if (oldOrder.status === 'completed' && status !== 'completed' && order.customerId) {
+        const customer = await storage.getCustomer(order.customerId);
+        if (customer) {
+          const totalSpentNum = Math.max(0, parseFloat(customer.totalSpent || "0") - parseFloat(order.totalUah || "0"));
+          const totalOrders = Math.max(0, (customer.totalOrders || 0) - 1);
+          
+          // Deduct points
+          const pointsToDeduct = Math.floor(parseFloat(order.totalUah || "0") / 1000);
+          const loyaltyPoints = Math.max(0, (customer.loyaltyPoints || 0) - pointsToDeduct);
+
+          // Note: We don't easily know if this was a 10th order to reset discount, 
+          // but usually status changes from completed are rare.
+          
+          await storage.updateCustomer(customer.id, {
+            totalSpent: totalSpentNum.toString(),
+            totalOrders,
+            loyaltyPoints
+          } as any);
+        }
+      }
       
       // Send notification if bot is active
       const orderWithDetails = await storage.getOrder(req.params.id) as any;
