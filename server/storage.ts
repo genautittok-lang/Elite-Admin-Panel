@@ -198,13 +198,12 @@ export class DatabaseStorage implements IStorage {
     return customerList.map(customer => {
       const customerOrders = orderList.filter(o => o.customerId === customer.id);
       const totalSpent = customerOrders.reduce((sum, o) => sum + Number(o.totalUah), 0);
-      const loyaltyPoints = Math.floor(totalSpent / 1000);
       
       return {
         ...customer,
         totalOrders: customerOrders.length,
         totalSpent: totalSpent.toString(),
-        loyaltyPoints: loyaltyPoints
+        loyaltyPoints: Math.floor(totalSpent / 1000)
       };
     });
   }

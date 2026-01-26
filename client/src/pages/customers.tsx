@@ -177,7 +177,7 @@ export default function Customers() {
                 <p className="text-2xl font-bold">
                   {customers?.reduce((acc, c) => acc + Number(c.totalSpent || 0), 0).toLocaleString()}
                 </p>
-                <p className="text-sm text-muted-foreground">Загальна виручка, грн</p>
+                <p className="text-sm text-muted-foreground">Загальна виручка (без скасованих), грн</p>
               </div>
             </div>
           </CardContent>
