@@ -417,40 +417,60 @@ export default function Products() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <FormField
-                    control={form.control}
-                    name="priceUsd"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ціна (USD)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="0.00" 
-                            {...field} 
-                            data-testid="input-product-price-usd"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="priceUah"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ціна (UAH)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="0.00" 
-                            {...field} 
-                            data-testid="input-product-price-uah"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* USD price field - only for preorder */}
+                  {form.watch("catalogType") === "preorder" && (
+                    <FormField
+                      control={form.control}
+                      name="priceUsd"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ціна (USD)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="0.00" 
+                              {...field} 
+                              data-testid="input-product-price-usd"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  
+                  {/* UAH price - auto-calculated for preorder, editable for instock */}
+                  {form.watch("catalogType") === "preorder" ? (
+                    <FormItem>
+                      <FormLabel>Ціна (UAH) - авторозрахунок</FormLabel>
+                      <div className="flex items-center h-9 px-3 rounded-md border bg-muted text-muted-foreground">
+                        {(() => {
+                          const usd = parseFloat(form.watch("priceUsd") || "0");
+                          if (usd > 0) {
+                            return `${(usd * exchangeRate).toFixed(2)} грн (курс: ${exchangeRate})`;
+                          }
+                          return "Введіть ціну в USD";
+                        })()}
+                      </div>
+                    </FormItem>
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name="priceUah"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ціна (UAH)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="0.00" 
+                              {...field} 
+                              data-testid="input-product-price-uah"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   <FormField
                     control={form.control}
                     name="packSize"
