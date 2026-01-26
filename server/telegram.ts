@@ -1438,6 +1438,8 @@ if (bot) {
       });
     }
     
+    // Exclude loyalty update from checkout, only handle in order status update
+    /* 
     // Update customer loyalty (1 point per 1000 UAH)
     const newTotalSpent = parseFloat(customer.totalSpent || '0') + total;
     const pointsEarned = Math.floor(total / 1000);
@@ -1462,15 +1464,18 @@ if (bot) {
       totalOrders: newTotalOrders,
       nextOrderDiscount: newNextOrderDiscount
     } as any);
-    
-    // Build bonus messages
+    */
+
+    // Send confirmation to user
     let bonusMessage = '';
+    const pointsEarned = Math.floor(total / 1000);
+    const nextOrderDiscount = ((customer.totalOrders || 0) + 1) % 10 === 0 ? '1000' : '0';
     if (discountApplied > 0) {
       bonusMessage += `\n\n✅ *Застосовано знижку:* -${discountApplied.toLocaleString('uk-UA')} грн`;
     }
-    if (newNextOrderDiscount === '1000') {
+    if (nextOrderDiscount === '1000') {
       bonusMessage += '\n\n🎁 *Вітаємо! Наступне замовлення зі знижкою 1000 грн!*';
-    } else if (newPoints >= 100) {
+    } else if ((customer.loyaltyPoints || 0) + pointsEarned >= 100) {
       bonusMessage += '\n\n🎁 *Вітаємо! Ви накопичили 100+ балів!*\n_Вам доступний подарунок!_';
     }
     

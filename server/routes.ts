@@ -430,9 +430,40 @@ export async function registerRoutes(
   app.patch("/api/orders/:id/status", async (req, res) => {
     try {
       const { status } = req.body;
+      const oldOrder = await storage.getOrder(req.params.id);
+      if (!oldOrder) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
       const order = await storage.updateOrderStatus(req.params.id, status);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
+      }
+      
+      // Points logic: only add when status changes TO completed
+      if (status === 'completed' && oldOrder.status !== 'completed' && order.customerId) {
+        const customer = await storage.getCustomer(order.customerId);
+        if (customer) {
+          const totalSpentNum = parseFloat(customer.totalSpent || "0") + parseFloat(order.totalUah || "0");
+          const totalOrders = (customer.totalOrders || 0) + 1;
+          
+          // 1 point per 1000 UAH
+          const newPoints = Math.floor(parseFloat(order.totalUah || "0") / 1000);
+          const loyaltyPoints = (customer.loyaltyPoints || 0) + newPoints;
+
+          // Discount logic: every 10th order
+          let nextOrderDiscount = customer.nextOrderDiscount || "0";
+          if (totalOrders % 10 === 0) {
+            nextOrderDiscount = "1000";
+          }
+          
+          await storage.updateCustomer(customer.id, {
+            totalSpent: totalSpentNum.toString(),
+            totalOrders,
+            loyaltyPoints,
+            nextOrderDiscount
+          } as any);
+        }
       }
       
       // Send notification if bot is active

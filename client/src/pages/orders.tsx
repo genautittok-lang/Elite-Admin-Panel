@@ -187,16 +187,15 @@ export default function Orders() {
                 {orders?.map((order) => (
                   <div 
                     key={order.id} 
-                    className="border rounded-lg p-4 space-y-3 hover-elevate"
-                    onClick={() => setSelectedOrder(order)}
+                    className="border rounded-lg p-4 space-y-3 hover-elevate bg-card"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between" onClick={() => setSelectedOrder(order)}>
                       <span className="font-semibold">{order.orderNumber}</span>
                       <Badge className={`${statusColors[order.status]} text-xs`}>
                         {statusLabels[order.status]}
                       </Badge>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm" onClick={() => setSelectedOrder(order)}>
                       <div>
                         <p className="font-medium">{order.customer?.name || "—"}</p>
                         <p className="text-xs text-muted-foreground">{order.customer?.city || "—"}</p>
@@ -208,24 +207,27 @@ export default function Orders() {
                         </p>
                       </div>
                     </div>
-                    <Select
-                      value={order.status}
-                      onValueChange={(status) => {
-                        updateStatusMutation.mutate({ id: order.id, status: status as OrderStatus });
-                      }}
-                    >
-                      <SelectTrigger className="w-full" data-testid={`select-order-status-mobile-${order.id}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="new">Нове</SelectItem>
-                        <SelectItem value="confirmed">Підтверджено</SelectItem>
-                        <SelectItem value="processing">В роботі</SelectItem>
-                        <SelectItem value="shipped">Відправлено</SelectItem>
-                        <SelectItem value="completed">Завершено</SelectItem>
-                        <SelectItem value="cancelled">Скасовано</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="pt-2 border-t" onClick={(e) => e.stopPropagation()}>
+                      <p className="text-xs text-muted-foreground mb-2">Змінити статус:</p>
+                      <Select
+                        value={order.status}
+                        onValueChange={(status) => {
+                          updateStatusMutation.mutate({ id: order.id, status: status as OrderStatus });
+                        }}
+                      >
+                        <SelectTrigger className="w-full h-10 bg-background" data-testid={`select-order-status-mobile-${order.id}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">Нове</SelectItem>
+                          <SelectItem value="confirmed">Підтверджено</SelectItem>
+                          <SelectItem value="processing">В роботі</SelectItem>
+                          <SelectItem value="shipped">Відправлено</SelectItem>
+                          <SelectItem value="completed">Завершено</SelectItem>
+                          <SelectItem value="cancelled">Скасовано</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 ))}
               </div>
