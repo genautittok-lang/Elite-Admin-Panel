@@ -343,32 +343,22 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
   const txt = getText(session);
   const firstName = ctx.from?.first_name || 'User';
   
-  const inlineKeyboard = Markup.inlineKeyboard([
+  const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback(txt.catalog, 'catalog'), Markup.button.callback(txt.promotions, 'promotions')],
     [Markup.button.callback(txt.favorites, 'favorites'), Markup.button.callback(txt.cart, 'cart')],
     [Markup.button.callback(txt.history, 'history'), Markup.button.callback(txt.loyalty, 'loyalty')],
     [Markup.button.callback(txt.manager, 'manager'), Markup.button.callback(txt.settings, 'settings')],
     [Markup.button.callback(txt.about, 'about')]
   ]);
-
-  const replyKeyboard = Markup.keyboard([
-    [Markup.button.text('🏠 Меню'), Markup.button.text('🧺 Кошик')]
-  ]).resize();
   
   if (edit && 'editMessageText' in ctx) {
     try {
-      await ctx.editMessageText(txt.welcome(firstName), inlineKeyboard);
+      await ctx.editMessageText(txt.welcome(firstName), keyboard);
     } catch {
-      await ctx.reply(txt.welcome(firstName), {
-        ...inlineKeyboard,
-        ...replyKeyboard
-      });
+      await ctx.reply(txt.welcome(firstName), keyboard);
     }
   } else {
-    await ctx.reply(txt.welcome(firstName), {
-      ...inlineKeyboard,
-      ...replyKeyboard
-    });
+    await ctx.reply(txt.welcome(firstName), keyboard);
   }
 }
 
@@ -625,80 +615,6 @@ if (bot) {
   });
 
   // Text input handler (city, search, checkout)
-  bot.hears('🏠 Меню', async (ctx) => {
-    const session = getSession(ctx.from!.id.toString());
-    await showMainMenu(ctx, session);
-  });
-
-  bot.hears('🧺 Кошик', async (ctx) => {
-    const session = getSession(ctx.from!.id.toString());
-    const telegramId = ctx.from!.id.toString();
-    
-    if (session.cart.length === 0) {
-      await ctx.reply(
-        '🧺 *Ваш кошик порожній*\n\nДодайте товари з каталогу!',
-        { 
-          parse_mode: 'Markdown',
-          ...Markup.inlineKeyboard([
-            [Markup.button.callback('🌹 Каталог', 'catalog')],
-            [Markup.button.callback('🏠 Меню', 'menu')]
-          ])
-        }
-      );
-      return;
-    }
-    
-    // Check for discount
-    const customers = await storage.getCustomers();
-    const customer = customers.find(c => c.telegramId === telegramId);
-    const availableDiscount = parseFloat(customer?.nextOrderDiscount as any || '0');
-    
-    const products = await getCachedProducts();
-    let total = 0;
-    let message = '🧺 *ВАШ КОШИК*\n';
-    message += '━━━━━━━━━━━━━━━━━━\n\n';
-    
-    let itemNum = 1;
-    for (const item of session.cart) {
-      const product = products.find(p => p.id === item.productId);
-      if (product) {
-        const price = calculatePrice(product, session);
-        const itemTotal = price * item.quantity;
-        total += itemTotal;
-        
-        message += `*${itemNum}. ${product.name}*\n`;
-        message += `   _${product.variety}_\n`;
-        message += `   📦 ${item.quantity} упак. × ${price.toLocaleString('uk-UA')} грн\n`;
-        message += `   💰 = *${itemTotal.toLocaleString('uk-UA')} грн*\n\n`;
-        itemNum++;
-      }
-    }
-    
-    message += '━━━━━━━━━━━━━━━━━━\n';
-    message += `💵 *ВСЬОГО: ${total.toLocaleString('uk-UA')} грн*`;
-    
-    if (session.customerType === 'wholesale') {
-      message += `\n🏷️ _Оптова знижка -5% застосована_`;
-    }
-    
-    if (availableDiscount > 0) {
-      message += `\n\n🎁 *Ваша знижка: -${availableDiscount.toLocaleString('uk-UA')} грн*\n_Буде застосована при оформленні_`;
-    }
-    
-    if (total < 5000) {
-      message += `\n\n⚠️ Мін. замовлення: 5000 грн\n_До мінімуму: ${(5000 - total).toLocaleString('uk-UA')} грн_`;
-    }
-    
-    const buttons = [];
-    if (total >= 5000) {
-      buttons.push([Markup.button.callback('✅ Оформити замовлення', 'checkout')]);
-    }
-    buttons.push([Markup.button.callback('🗑️ Очистити', 'clear_cart'), Markup.button.callback('🌹 Додати ще', 'catalog')]);
-    buttons.push([Markup.button.callback('◀️ Меню', 'menu')]);
-    
-    await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
-  });
-
   bot.on('text', async (ctx) => {
     const telegramId = ctx.from.id.toString();
     const session = getSession(telegramId);
