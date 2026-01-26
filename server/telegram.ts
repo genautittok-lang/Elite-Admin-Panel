@@ -1622,7 +1622,7 @@ if (bot) {
     
     await ctx.editMessageText(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
       [Markup.button.callback('🌹 Каталог', 'catalog')],
-      [Markup.button.callback('🏠 Меню', 'menu')]
+      [Markup.button.callback('🏠 Головне меню', 'menu')]
     ])});
   });
 
@@ -1635,9 +1635,9 @@ if (bot) {
     await ctx.editMessageText(txt.managerContact, { 
       parse_mode: 'Markdown',
       link_preview_options: { is_disabled: true },
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Меню', 'menu')]
-      ])
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Головне меню', 'menu')]
+      ]).reply_markup
     });
   });
 
@@ -1649,9 +1649,9 @@ if (bot) {
     
     await ctx.editMessageText(txt.aboutText, { 
       parse_mode: 'Markdown',
-      ...Markup.inlineKeyboard([
-        [Markup.button.callback('🏠 Меню', 'menu')]
-      ])
+      reply_markup: Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Головне меню', 'menu')]
+      ]).reply_markup
     });
   });
 
@@ -1669,7 +1669,7 @@ if (bot) {
     const orders = customer?.totalOrders || 0;
     
     await ctx.editMessageText(txt.loyaltyInfo(points, orders), Markup.inlineKeyboard([
-      [Markup.button.callback('🏠 Меню', 'menu')]
+      [Markup.button.callback('🏠 Головне меню', 'menu')]
     ]));
   });
 
@@ -1685,7 +1685,7 @@ if (bot) {
         [Markup.button.callback(txt.changeLanguage, 'change_lang')],
         [Markup.button.callback(txt.changeCity, 'change_city')],
         [Markup.button.callback(txt.changeType, 'change_type')],
-        [Markup.button.callback('🏠 Меню', 'menu')]
+        [Markup.button.callback('🏠 Головне меню', 'menu')]
       ])
     );
   });
