@@ -178,8 +178,8 @@ const t = {
     price: 'Ціна',
     country: 'Країна',
     plantation: 'Плантація',
-    managerContact: '📞 Зв\'яжіться з нашим менеджером:\n\nТелефон: +380 XX XXX XX XX\nEmail: manager@kvitkaopt.com',
-    aboutText: 'ℹ️ KVITKA opt - оптовий продаж квітів\n\n🌸 Працюємо з 2010 року\n🌍 Імпорт з 6 країн\n🚚 Доставка по Україні\n💐 Понад 500 сортів',
+    managerContact: `📞 *Зв'яжіться з нашим менеджером:*\n\nМенеджер: +380 (68) 126 49 03\n\nTelegram: @bogdan_OP24\nViber: [Написати у Viber](https://surl.li/upwsxh)\nInstagram: [Наш Instagram](https://surl.li/mjfvsg)`,
+    aboutText: `🌿 *KVITKA Opt — це про можливість бути іншими.*\n\nЗавдяки співпраці з різними плантаціями з усього світу ми відкриваємо флористам широкий вибір сортів, нових позицій і довготривалої квітки. Тієї, що не просто гарна, а справді довго радує.\n\nМи хочемо, щоб оптові закупівлі не забирали енергію, а навпаки — давали натхнення та впевненість у кожному замовленні.\n\n🌸 *Наші переваги:*\n▫️ Оптовий каталог квітів\n▫️ Формування заявок 24/7\n▫️ Понад 100 плантацій з усього світу\n▫️ Платформа для В2В клієнтів`,
     loyaltyInfo: (points: number, orders: number) => {
       let msg = `🏆 Програма лояльності:\n\n💰 Ваш баланс: ${points} балів\n📦 Замовлень: ${orders}\n\n`;
       msg += `📌 Правила:\n• 1 бал = 1000 грн покупок\n• 100 балів = подарунок\n• Кожне 11-те замовлення: -1000 грн\n\n`;
@@ -241,8 +241,8 @@ const t = {
     price: 'Price',
     country: 'Country',
     plantation: 'Plantation',
-    managerContact: '📞 Contact our manager:\n\nPhone: +380 XX XXX XX XX\nEmail: manager@kvitkaopt.com',
-    aboutText: 'ℹ️ KVITKA opt - Wholesale Flowers\n\n🌸 Since 2010\n🌍 Import from 6 countries\n🚚 Delivery across Ukraine\n💐 Over 500 varieties',
+    managerContact: `📞 *Contact our manager:*\n\nManager: +380 (68) 126 49 03\n\nTelegram: @bogdan_OP24\nViber: [Write on Viber](https://surl.li/upwsxh)\nInstagram: [Our Instagram](https://surl.li/mjfvsg)`,
+    aboutText: `🌿 *KVITKA Opt — it's about the opportunity to be different.*\n\nThanks to cooperation with various plantations around the world, we offer florists a wide selection of varieties, new positions and long-lasting flowers. Ones that are not just beautiful, but truly delight for a long time.\n\nWe want wholesale purchases to not take away energy, but on the contrary — to give inspiration and confidence in every order.\n\n🌸 *Our Advantages:*\n▫️ Wholesale flower catalog\n▫️ 24/7 order formation\n▫️ Over 100 plantations worldwide\n▫️ Platform for B2B clients`,
     loyaltyInfo: (points: number, orders: number) => {
       let msg = `🏆 Loyalty Program:\n\n💰 Balance: ${points} points\n📦 Orders: ${orders}\n\n`;
       msg += `📌 Rules:\n• 1 point = 1000 UAH spent\n• 100 points = gift\n• Every 11th order: -1000 UAH\n\n`;
@@ -304,8 +304,8 @@ const t = {
     price: 'Цена',
     country: 'Страна',
     plantation: 'Плантация',
-    managerContact: '📞 Свяжитесь с нашим менеджером:\n\nТелефон: +380 XX XXX XX XX\nEmail: manager@kvitkaopt.com',
-    aboutText: 'ℹ️ KVITKA opt - оптовая продажа цветов\n\n🌸 Работаем с 2010 года\n🌍 Импорт из 6 стран\n🚚 Доставка по Украине\n💐 Более 500 сортов',
+    managerContact: `📞 *Свяжитесь с нашим менеджером:*\n\nМенеджер: +380 (68) 126 49 03\n\nTelegram: @bogdan_OP24\nViber: [Написать у Viber](https://surl.li/upwsxh)\nInstagram: [Наш Instagram](https://surl.li/mjfvsg)`,
+    aboutText: `🌿 *KVITKA Opt — это о возможности быть другими.*\n\nБлагодаря сотрудничеству с разными плантациями со всего мира мы открываем флористам широкий выбор сортов, новых позиций и долгоживущего цветка. Того, который не просто красив, а действительно долго радует.\n\nМы хотим, чтобы оптовые закупки не забирали энергию, а наоборот — давали вдохновение и уверенность в каждом заказе.\n\n🌸 *Наши преимущества:*\n▫️ Оптовый каталог цветов\n▫️ Формирование заявок 24/7\n▫️ Более 100 плантаций со всего мира\n▫️ Платформа для В2В клиентов`,
     loyaltyInfo: (points: number, orders: number) => {
       let msg = `🏆 Программа лояльности:\n\n💰 Ваш баланс: ${points} баллов\n📦 Заказов: ${orders}\n\n`;
       msg += `📌 Правила:\n• 1 балл = 1000 грн покупок\n• 100 баллов = подарок\n• Каждый 11-й заказ: -1000 грн\n\n`;
@@ -1632,9 +1632,13 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    await ctx.editMessageText(txt.managerContact, Markup.inlineKeyboard([
-      [Markup.button.callback('🏠 Меню', 'menu')]
-    ]));
+    await ctx.editMessageText(txt.managerContact, { 
+      parse_mode: 'Markdown',
+      disable_web_page_preview: true,
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Меню', 'menu')]
+      ])
+    });
   });
 
   // About
@@ -1643,9 +1647,12 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    await ctx.editMessageText(txt.aboutText, Markup.inlineKeyboard([
-      [Markup.button.callback('🏠 Меню', 'menu')]
-    ]));
+    await ctx.editMessageText(txt.aboutText, { 
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Меню', 'menu')]
+      ])
+    });
   });
 
   // Loyalty
