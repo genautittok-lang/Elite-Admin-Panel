@@ -119,15 +119,15 @@ export default function Orders() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Замовлення</h1>
-          <p className="text-muted-foreground">Керування замовленнями клієнтів</p>
+          <h1 className="text-xl md:text-2xl font-bold">Замовлення</h1>
+          <p className="text-sm text-muted-foreground">Керування замовленнями</p>
         </div>
-        <Button onClick={exportOrders} variant="outline" data-testid="button-export-orders">
+        <Button onClick={exportOrders} variant="outline" size="sm" className="w-full sm:w-auto" data-testid="button-export-orders">
           <Download className="h-4 w-4 mr-2" />
-          Експорт CSV
+          Експорт
         </Button>
       </div>
 
@@ -182,7 +182,56 @@ export default function Orders() {
             </div>
           ) : (
             <>
-              <div className="rounded-lg border overflow-hidden">
+              {/* Mobile cards view */}
+              <div className="md:hidden space-y-3">
+                {orders?.map((order) => (
+                  <div 
+                    key={order.id} 
+                    className="border rounded-lg p-4 space-y-3 hover-elevate"
+                    onClick={() => setSelectedOrder(order)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{order.orderNumber}</span>
+                      <Badge className={`${statusColors[order.status]} text-xs`}>
+                        {statusLabels[order.status]}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium">{order.customer?.name || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{order.customer?.city || "—"}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg">{Number(order.totalUah).toLocaleString()} грн</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(order.createdAt || "").toLocaleDateString("uk-UA")}
+                        </p>
+                      </div>
+                    </div>
+                    <Select
+                      value={order.status}
+                      onValueChange={(status) => {
+                        updateStatusMutation.mutate({ id: order.id, status: status as OrderStatus });
+                      }}
+                    >
+                      <SelectTrigger className="w-full" data-testid={`select-order-status-mobile-${order.id}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">Нове</SelectItem>
+                        <SelectItem value="confirmed">Підтверджено</SelectItem>
+                        <SelectItem value="processing">В роботі</SelectItem>
+                        <SelectItem value="shipped">Відправлено</SelectItem>
+                        <SelectItem value="completed">Завершено</SelectItem>
+                        <SelectItem value="cancelled">Скасовано</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table view */}
+              <div className="hidden md:block rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">

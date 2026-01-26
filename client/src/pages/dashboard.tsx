@@ -32,16 +32,16 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+      <CardHeader className="flex flex-row items-center justify-between gap-1 p-3 md:p-4 pb-1 md:pb-2">
+        <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground truncate">
           {title}
         </CardTitle>
-        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="h-7 w-7 md:h-9 md:w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <Icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">
+      <CardContent className="p-3 md:p-4 pt-0">
+        <div className="text-lg md:text-2xl font-bold truncate">
           {value}{suffix}
         </div>
         {change !== undefined && (
@@ -53,7 +53,8 @@ function StatCard({
             ) : trend === "down" ? (
               <TrendingDown className="h-3 w-3" />
             ) : null}
-            {change > 0 ? "+" : ""}{change}% від вчора
+            <span className="hidden sm:inline">{change > 0 ? "+" : ""}{change}% від вчора</span>
+            <span className="sm:hidden">{change > 0 ? "+" : ""}{change}%</span>
           </p>
         )}
       </CardContent>
@@ -158,21 +159,19 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Дашборд</h1>
-          <p className="text-muted-foreground">Огляд вашого бізнесу</p>
+          <h1 className="text-xl md:text-2xl font-bold">Дашборд</h1>
+          <p className="text-sm text-muted-foreground">Огляд бізнесу</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1">
-            <Flower2 className="h-3 w-3" />
-            KVITKA opt
-          </Badge>
-        </div>
+        <Badge variant="outline" className="gap-1 hidden sm:flex">
+          <Flower2 className="h-3 w-3" />
+          KVITKA opt
+        </Badge>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {statsLoading ? (
           <>
             {[...Array(4)].map((_, i) => (

@@ -241,11 +241,11 @@ export default function Products() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Товари</h1>
-          <p className="text-muted-foreground">Каталог квітів та продукції</p>
+          <h1 className="text-xl md:text-2xl font-bold">Товари</h1>
+          <p className="text-sm text-muted-foreground">Каталог квітів</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
@@ -255,12 +255,12 @@ export default function Products() {
           }
         }}>
           <DialogTrigger asChild>
-            <Button data-testid="button-add-product">
+            <Button size="sm" className="w-full sm:w-auto" data-testid="button-add-product">
               <Plus className="h-4 w-4 mr-2" />
-              Додати товар
+              Додати
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-2">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? "Редагувати товар" : "Новий товар"}
@@ -611,21 +611,21 @@ export default function Products() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4">
-          <div className="relative flex-1">
+        <CardHeader className="space-y-3 pb-4">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Пошук за назвою або сортом..."
+              placeholder="Пошук..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
               data-testid="input-search-products"
             />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
             <Select value={countryFilter} onValueChange={setCountryFilter}>
-              <SelectTrigger className="w-36" data-testid="select-country-filter">
+              <SelectTrigger className="w-28 md:w-36 shrink-0" data-testid="select-country-filter">
                 <SelectValue placeholder="Країна" />
               </SelectTrigger>
               <SelectContent>
@@ -638,7 +638,7 @@ export default function Products() {
               </SelectContent>
             </Select>
             <Select value={catalogFilter} onValueChange={setCatalogFilter}>
-              <SelectTrigger className="w-40" data-testid="select-catalog-filter">
+              <SelectTrigger className="w-32 md:w-40 shrink-0" data-testid="select-catalog-filter">
                 <SelectValue placeholder="Каталог" />
               </SelectTrigger>
               <SelectContent>
@@ -669,88 +669,128 @@ export default function Products() {
               </p>
             </div>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Товар</TableHead>
-                    <TableHead>Країна</TableHead>
-                    <TableHead>Клас</TableHead>
-                    <TableHead>Висота</TableHead>
-                    <TableHead>Ціна</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead className="text-right">Дії</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProducts?.map((product) => (
-                    <TableRow key={product.id} className="hover-elevate">
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded overflow-hidden bg-muted flex items-center justify-center border shrink-0">
-                            {product.images && product.images[0] ? (
-                              <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <Flower2 className="h-5 w-5 text-muted-foreground/40" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium line-clamp-1">{product.name}</p>
-                            <p className="text-xs text-muted-foreground line-clamp-1">{product.variety}</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-lg mr-1">{product.country?.flag}</span>
-                        {product.country?.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{product.flowerClass}</Badge>
-                      </TableCell>
-                      <TableCell>{product.height} см</TableCell>
-                      <TableCell>
-                        {product.priceUah ? (
-                          <span className="font-semibold">
-                            {Number(product.priceUah).toLocaleString()} грн
-                          </span>
-                        ) : product.priceUsd ? (
-                          <span className="font-semibold">
-                            ${Number(product.priceUsd).toFixed(2)}
-                          </span>
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3">
+                {filteredProducts?.map((product) => (
+                  <div key={product.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded overflow-hidden bg-muted flex items-center justify-center border shrink-0">
+                        {product.images && product.images[0] ? (
+                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                         ) : (
-                          "—"
+                          <Flower2 className="h-5 w-5 text-muted-foreground/40" />
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={statusColors[product.status] || ""}>
-                          {statusLabels[product.status] || product.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => handleEdit(product)}
-                            data-testid={`button-edit-product-${product.id}`}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => deleteMutation.mutate(product.id)}
-                            data-testid={`button-delete-product-${product.id}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{product.name}</p>
+                        <p className="text-xs text-muted-foreground">{product.variety}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span>{product.country?.flag}</span>
+                          <Badge variant="outline" className="text-xs">{product.flowerClass}</Badge>
                         </div>
-                      </TableCell>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold">
+                          {product.priceUsd ? `$${Number(product.priceUsd).toFixed(2)}` : "—"}
+                        </p>
+                        <Badge className={`${statusColors[product.status]} text-xs mt-1`}>
+                          {statusLabels[product.status]}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => handleEdit(product)}>
+                        <Edit className="h-4 w-4 mr-1" /> Редагувати
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => deleteMutation.mutate(product.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Товар</TableHead>
+                      <TableHead>Країна</TableHead>
+                      <TableHead>Клас</TableHead>
+                      <TableHead>Висота</TableHead>
+                      <TableHead>Ціна</TableHead>
+                      <TableHead>Статус</TableHead>
+                      <TableHead className="text-right">Дії</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts?.map((product) => (
+                      <TableRow key={product.id} className="hover-elevate">
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded overflow-hidden bg-muted flex items-center justify-center border shrink-0">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <Flower2 className="h-5 w-5 text-muted-foreground/40" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium line-clamp-1">{product.name}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{product.variety}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-lg mr-1">{product.country?.flag}</span>
+                          {product.country?.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{product.flowerClass}</Badge>
+                        </TableCell>
+                        <TableCell>{product.height} см</TableCell>
+                        <TableCell>
+                          {product.priceUsd ? (
+                            <span className="font-semibold">
+                              ${Number(product.priceUsd).toFixed(2)}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={statusColors[product.status] || ""}>
+                            {statusLabels[product.status] || product.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleEdit(product)}
+                              data-testid={`button-edit-product-${product.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => deleteMutation.mutate(product.id)}
+                              data-testid={`button-delete-product-${product.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
