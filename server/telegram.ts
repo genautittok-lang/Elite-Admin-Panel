@@ -396,7 +396,11 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
     filteredProducts = filteredProducts.filter(p => p.flowerClass === currentFilters.flowerClass);
   }
   if (currentFilters.height) {
-    filteredProducts = filteredProducts.filter(p => p.height === parseInt(currentFilters.height as string));
+    // Height can be comma-separated, check if the selected height is in the product's heights
+    filteredProducts = filteredProducts.filter(p => {
+      const productHeights = String(p.height).split(',').map(h => h.trim());
+      return productHeights.includes(currentFilters.height as string);
+    });
   }
   if (currentFilters.color) {
     filteredProducts = filteredProducts.filter(p => p.color === currentFilters.color);
@@ -404,7 +408,17 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   
   // Get available filter options from currently filtered products
   const classes = Array.from(new Set(baseProducts.map(p => p.flowerClass)));
-  const heights = Array.from(new Set(baseProducts.map(p => p.height))).sort((a, b) => a - b);
+  // Parse comma-separated heights and get unique values
+  const allHeights: number[] = [];
+  baseProducts.forEach(p => {
+    String(p.height).split(',').forEach(h => {
+      const parsed = parseInt(h.trim());
+      if (!isNaN(parsed) && !allHeights.includes(parsed)) {
+        allHeights.push(parsed);
+      }
+    });
+  });
+  const heights = allHeights.sort((a, b) => a - b);
   const colors = Array.from(new Set(baseProducts.map(p => p.color)));
   
   let message = '🔍 *Фільтри:*\n\n';
@@ -1022,7 +1036,17 @@ if (bot) {
       p.catalogType === catalogType
     );
     
-    const heights = Array.from(new Set(filtered.map(p => p.height))).sort((a, b) => a - b);
+    // Parse comma-separated heights and get unique values
+    const allHeights: number[] = [];
+    filtered.forEach(p => {
+      String(p.height).split(',').forEach(h => {
+        const parsed = parseInt(h.trim());
+        if (!isNaN(parsed) && !allHeights.includes(parsed)) {
+          allHeights.push(parsed);
+        }
+      });
+    });
+    const heights = allHeights.sort((a, b) => a - b);
     
     const buttons = heights.map(h => [
       Markup.button.callback(`${h} см`, `set_height_${h}`)
@@ -1117,7 +1141,11 @@ if (bot) {
       filtered = filtered.filter(p => p.flowerClass === filters.flowerClass);
     }
     if (filters.height) {
-      filtered = filtered.filter(p => p.height === parseInt(filters.height as string));
+      // Height can be comma-separated, check if the selected height is in the product's heights
+      filtered = filtered.filter(p => {
+        const productHeights = String(p.height).split(',').map(h => h.trim());
+        return productHeights.includes(filters.height as string);
+      });
     }
     if (filters.color) {
       filtered = filtered.filter(p => p.color === filters.color);

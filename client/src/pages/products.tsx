@@ -60,7 +60,7 @@ const productFormSchema = z.object({
   countryId: z.string().min(1, "Обов'язкове поле"),
   plantationId: z.string().optional(),
   flowerClass: z.string().min(1, "Обов'язкове поле"),
-  height: z.number().min(1, "Має бути більше 0"),
+  height: z.string().min(1, "Обов'язкове поле"),
   color: z.string().min(1, "Обов'язкове поле"),
   priceUsd: z.string().optional(),
   priceUah: z.string().optional(),
@@ -113,7 +113,7 @@ export default function Products() {
       typeId: "",
       countryId: "",
       flowerClass: "Standard",
-      height: 50,
+      height: "50",
       color: "",
       status: "available",
       catalogType: "preorder",
@@ -198,7 +198,7 @@ export default function Products() {
       countryId: product.countryId,
       plantationId: product.plantationId || undefined,
       flowerClass: product.flowerClass,
-      height: product.height,
+      height: String(product.height),
       color: product.color,
       priceUsd: product.priceUsd?.toString() || "",
       priceUah: product.priceUah?.toString() || "",
@@ -384,12 +384,11 @@ export default function Products() {
                     name="height"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Висота (см)</FormLabel>
+                        <FormLabel>Висота (см, можна декілька через кому)</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
+                            placeholder="40, 50, 60"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                             data-testid="input-product-height"
                           />
                         </FormControl>
