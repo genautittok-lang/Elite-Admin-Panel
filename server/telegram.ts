@@ -511,7 +511,7 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
       Markup.button.callback('📦 +10', `c_10_${shortId}`)
     ],
     [
-      Markup.button.callback('➕ Додати ще', `c_1_${shortId}`),
+      Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
       Markup.button.callback('🧺 Кошик', 'cart')
     ],
     [
@@ -1226,6 +1226,28 @@ if (bot) {
     } else {
       session.favorites.push(product.id);
       await ctx.answerCbQuery('❤️ Додано до обраного!');
+    }
+    
+    // Update the message with new button state
+    const buttons = Markup.inlineKeyboard([
+      [
+        Markup.button.callback('📦 +1', `c_1_${shortId}`),
+        Markup.button.callback('📦 +5', `c_5_${shortId}`),
+        Markup.button.callback('📦 +10', `c_10_${shortId}`)
+      ],
+      [
+        Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
+        Markup.button.callback('🧺 Кошик', 'cart')
+      ],
+      [
+        Markup.button.callback('🏠 Меню', 'menu')
+      ]
+    ]);
+    
+    try {
+      await ctx.editMessageReplyMarkup(buttons.reply_markup);
+    } catch (e) {
+      // Ignore if message couldn't be edited (e.g. same markup)
     }
   });
 
