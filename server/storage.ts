@@ -319,15 +319,17 @@ export class DatabaseStorage implements IStorage {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const todayOrders = orderList.filter(o => new Date(o.createdAt!) >= today);
-    const yesterdayOrders = orderList.filter(o => new Date(o.createdAt!) >= yesterday && new Date(o.createdAt!) < today);
+    // Exclude cancelled orders from revenue calculations
+    const activeOrders = orderList.filter(o => o.status !== 'cancelled');
+    const todayOrders = activeOrders.filter(o => new Date(o.createdAt!) >= today);
+    const yesterdayOrders = activeOrders.filter(o => new Date(o.createdAt!) >= yesterday && new Date(o.createdAt!) < today);
 
-    const totalRevenue = orderList.reduce((sum, o) => sum + Number(o.totalUah), 0);
+    const totalRevenue = activeOrders.reduce((sum, o) => sum + Number(o.totalUah), 0);
     const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.totalUah), 0);
     const yesterdayRevenue = yesterdayOrders.reduce((sum, o) => sum + Number(o.totalUah), 0);
 
     return {
-      totalOrders: orderList.length,
+      totalOrders: activeOrders.length,
       totalRevenue,
       totalCustomers: customerList.length,
       totalProducts: productList.length,

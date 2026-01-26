@@ -439,16 +439,19 @@ export async function registerRoutes(
       const orderWithDetails = await storage.getOrder(req.params.id) as any;
       if (orderWithDetails?.customer?.telegramId) {
         try {
-          const statusMap: Record<string, string> = {
-            new: "Нове",
-            confirmed: "Підтверджено",
-            processing: "В роботі",
-            shipped: "Відправлено",
-            completed: "Завершено",
-            cancelled: "Скасовано"
+          const totalUah = parseFloat(orderWithDetails.totalUah).toLocaleString('uk-UA');
+          
+          // Detailed messages for each status
+          const statusMessages: Record<string, string> = {
+            new: `🆕 *Нове замовлення*\n\n📦 Замовлення: *${orderWithDetails.orderNumber}*\n💰 Сума: ${totalUah} грн\n\nОчікуйте підтвердження!`,
+            confirmed: `✅ *Замовлення підтверджено!*\n\n📦 Замовлення: *${orderWithDetails.orderNumber}*\n💰 Сума: ${totalUah} грн\n\nДякуємо! Ми почнемо підготовку вашого замовлення найближчим часом.`,
+            processing: `⚙️ *Замовлення в обробці*\n\n📦 Замовлення: *${orderWithDetails.orderNumber}*\n💰 Сума: ${totalUah} грн\n\nВаше замовлення готується до відправки. Очікуйте сповіщення про відправку!`,
+            shipped: `🚚 *Замовлення відправлено!*\n\n📦 Замовлення: *${orderWithDetails.orderNumber}*\n💰 Сума: ${totalUah} грн\n\n📍 Ваше замовлення вже в дорозі! Очікуйте доставку найближчим часом.\n\nЯкщо є питання - зверніться до менеджера.`,
+            completed: `✨ *Замовлення завершено!*\n\n📦 Замовлення: *${orderWithDetails.orderNumber}*\n💰 Сума: ${totalUah} грн\n\n🌹 Дякуємо за покупку!\nСподіваємось, квіти вам сподобались.\n\nЧекаємо на вас знову!`,
+            cancelled: `❌ *Замовлення скасовано*\n\n📦 Замовлення: *${orderWithDetails.orderNumber}*\n💰 Сума: ${totalUah} грн\n\nЯкщо у вас є питання, зверніться до менеджера.`
           };
-          const statusName = statusMap[status] || status;
-          const message = `🔔 Статус вашого замовлення ${orderWithDetails.orderNumber} змінено на: *${statusName}*`;
+          
+          const message = statusMessages[status] || `🔔 Статус замовлення ${orderWithDetails.orderNumber} змінено`;
           await bot?.telegram.sendMessage(orderWithDetails.customer.telegramId, message, { parse_mode: 'Markdown' });
         } catch (e) {
           console.error("Failed to send telegram notification", e);
