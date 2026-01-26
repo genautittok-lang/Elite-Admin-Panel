@@ -85,14 +85,15 @@ setInterval(() => {
 async function calculatePriceAsync(product: Product, session: UserSession): Promise<number> {
   let price = 0;
   
-  if (product.catalogType === 'instock') {
-    price = parseFloat(product.priceUah?.toString() || '0');
-  } else {
-    // Preorder: convert USD to UAH using rate from settings
-    const usdPrice = parseFloat(product.priceUsd?.toString() || '0');
+  // Always convert from USD to UAH using rate from settings
+  const usdPrice = parseFloat(product.priceUsd?.toString() || '0');
+  if (usdPrice > 0) {
     const rateSetting = await storage.getSetting('usd_to_uah_rate');
     const rate = parseFloat(rateSetting?.value || '41.5');
     price = usdPrice * rate;
+  } else {
+    // Fallback to priceUah if no USD price
+    price = parseFloat(product.priceUah?.toString() || '0');
   }
   
   // Apply wholesale discount

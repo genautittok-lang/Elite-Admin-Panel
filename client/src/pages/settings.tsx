@@ -90,10 +90,11 @@ export default function SettingsPage() {
   });
 
   const fetchExchangeRateMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", "/api/settings/fetch-exchange-rate");
+    mutationFn: async (): Promise<{ rate: string }> => {
+      const res = await apiRequest("POST", "/api/settings/fetch-exchange-rate");
+      return res.json();
     },
-    onSuccess: (data: { rate: string }) => {
+    onSuccess: (data) => {
       form.setValue("usdToUahRate", data.rate);
       toast({ title: "Курс оновлено" });
     },
@@ -162,6 +163,30 @@ export default function SettingsPage() {
               <CardContent className="space-y-6">
                 <FormField
                   control={form.control}
+                  name="autoExchangeRate"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Ручний курс</FormLabel>
+                        <FormDescription>
+                          {field.value 
+                            ? "Ви можете змінити курс вручну" 
+                            : "Курс заблоковано. Увімкніть щоб редагувати"}
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="switch-manual-rate"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="usdToUahRate"
                   render={({ field }) => (
                     <FormItem>
@@ -171,6 +196,8 @@ export default function SettingsPage() {
                           <Input 
                             {...field} 
                             placeholder="41.50"
+                            disabled={!form.watch("autoExchangeRate")}
+                            className={!form.watch("autoExchangeRate") ? "bg-muted" : ""}
                             data-testid="input-exchange-rate"
                           />
                         </FormControl>
@@ -179,38 +206,18 @@ export default function SettingsPage() {
                           variant="outline"
                           size="icon"
                           onClick={() => fetchExchangeRateMutation.mutate()}
-                          disabled={fetchExchangeRateMutation.isPending}
+                          disabled={fetchExchangeRateMutation.isPending || !form.watch("autoExchangeRate")}
                           data-testid="button-refresh-rate"
                         >
                           <RefreshCw className={`h-4 w-4 ${fetchExchangeRateMutation.isPending ? "animate-spin" : ""}`} />
                         </Button>
                       </div>
                       <FormDescription>
-                        Курс для конвертації цін передзамовлень
+                        {form.watch("autoExchangeRate") 
+                          ? "Введіть курс вручну або натисніть кнопку для оновлення"
+                          : "Увімкніть ручний курс щоб редагувати"}
                       </FormDescription>
                       <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="autoExchangeRate"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">Автоматичний курс</FormLabel>
-                        <FormDescription>
-                          Оновлювати курс автоматично щодня
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="switch-auto-rate"
-                        />
-                      </FormControl>
                     </FormItem>
                   )}
                 />
