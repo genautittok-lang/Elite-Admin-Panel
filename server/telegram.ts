@@ -355,10 +355,16 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
     try {
       await ctx.editMessageText(txt.welcome(firstName), keyboard);
     } catch {
-      await ctx.reply(txt.welcome(firstName), keyboard);
+      await ctx.reply(txt.welcome(firstName), {
+        ...keyboard,
+        reply_markup: { ...keyboard.reply_markup, remove_keyboard: true }
+      });
     }
   } else {
-    await ctx.reply(txt.welcome(firstName), keyboard);
+    await ctx.reply(txt.welcome(firstName), {
+      ...keyboard,
+      reply_markup: { ...keyboard.reply_markup, remove_keyboard: true }
+    });
   }
 }
 
