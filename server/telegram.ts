@@ -1634,7 +1634,7 @@ if (bot) {
     
     await ctx.editMessageText(txt.managerContact, { 
       parse_mode: 'Markdown',
-      disable_web_page_preview: true,
+      link_preview_options: { is_disabled: true },
       ...Markup.inlineKeyboard([
         [Markup.button.callback('🏠 Меню', 'menu')]
       ])
