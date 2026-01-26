@@ -1640,7 +1640,7 @@ if (bot) {
       [Markup.button.callback('🏠 Головне меню', 'menu')]
     ]);
 
-    await ctx.editMessageText(txt.managerContact, { 
+    await ctx.reply(txt.managerContact, { 
       parse_mode: 'Markdown',
       link_preview_options: { is_disabled: true },
       reply_markup: buttons.reply_markup
