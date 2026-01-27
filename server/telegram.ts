@@ -1470,7 +1470,7 @@ if (bot) {
     await ctx.answerCbQuery();
     
     // Clear all previous messages for clean cart view
-    await clearSessionMessages(ctx, session);
+    await clearOldMessages(ctx, session);
     
     if (session.cart.length === 0) {
       const msg = await ctx.reply(
