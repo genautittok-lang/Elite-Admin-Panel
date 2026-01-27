@@ -246,7 +246,8 @@ const t = {
       return `👥 *Реферальна програма*\n\n🔗 Ваше посилання:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Ваш баланс: ${balance} грн\n👥 Запрошено друзів: ${count}\n\n📌 *Як це працює:*\n• Поділіться посиланням з друзями\n• Коли друг зробить перше замовлення - ви отримаєте *200 грн* на баланс\n• Використовуйте баланс як знижку на наступне замовлення`;
     },
     referralBonus: '🎉 Вітаємо! Ви отримали 200 грн за запрошеного друга!',
-    referralWelcome: (inviterName: string) => `🎁 Вас запросив ${inviterName}! Приємних покупок!`
+    referralWelcome: (inviterName: string) => `🎁 Вас запросив ${inviterName}! Приємних покупок!`,
+    menuButton: '🏠 Головне меню'
   },
   en: {
     welcome: (name: string) => `Welcome, ${name}! 🌸\n\nHere you can:\n✅ Browse assortment\n✅ Check personal prices\n✅ Place orders\n✅ Earn bonuses\n\nSelect a menu item:`,
@@ -319,7 +320,8 @@ const t = {
       return `👥 *Referral Program*\n\n🔗 Your link:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Your balance: ${balance} UAH\n👥 Friends invited: ${count}\n\n📌 *How it works:*\n• Share your link with friends\n• When a friend makes first order - you get *200 UAH* to balance\n• Use balance as discount on next order`;
     },
     referralBonus: '🎉 Congrats! You received 200 UAH for inviting a friend!',
-    referralWelcome: (inviterName: string) => `🎁 You were invited by ${inviterName}! Enjoy shopping!`
+    referralWelcome: (inviterName: string) => `🎁 You were invited by ${inviterName}! Enjoy shopping!`,
+    menuButton: '🏠 Main Menu'
   },
   ru: {
     welcome: (name: string) => `Приветствуем, ${name}! 🌸\n\nЗдесь вы можете:\n✅ Посмотреть ассортимент\n✅ Узнать персональные цены\n✅ Оформить заказ\n✅ Накопить бонусы\n\nВыберите пункт меню:`,
@@ -392,7 +394,8 @@ const t = {
       return `👥 *Реферальная программа*\n\n🔗 Ваша ссылка:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Ваш баланс: ${balance} грн\n👥 Приглашено друзей: ${count}\n\n📌 *Как это работает:*\n• Поделитесь ссылкой с друзьями\n• Когда друг сделает первый заказ - вы получите *200 грн* на баланс\n• Используйте баланс как скидку на следующий заказ`;
     },
     referralBonus: '🎉 Поздравляем! Вы получили 200 грн за приглашенного друга!',
-    referralWelcome: (inviterName: string) => `🎁 Вас пригласил ${inviterName}! Приятных покупок!`
+    referralWelcome: (inviterName: string) => `🎁 Вас пригласил ${inviterName}! Приятных покупок!`,
+    menuButton: '🏠 Главное меню'
   }
 };
 
@@ -2117,7 +2120,7 @@ if (bot) {
         [Markup.button.callback(txt.changeLanguage, 'change_lang')],
         [Markup.button.callback(txt.changeCity, 'change_city')],
         [Markup.button.callback(txt.changeType, 'change_type')],
-        [Markup.button.callback('🏠 Головне меню', 'menu')]
+        [Markup.button.callback(txt.menuButton, 'menu')]
       ])
     );
   });
