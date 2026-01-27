@@ -345,12 +345,26 @@ export async function registerRoutes(
         updateData.plantationId = null;
       }
       
-      // Convert date strings to Date objects for timestamp columns
-      if (updateData.expectedDate) {
-        updateData.expectedDate = updateData.expectedDate === "" ? null : new Date(updateData.expectedDate);
+      // Handle all timestamp fields - convert strings to Date objects or null
+      // Remove createdAt - should never be updated
+      delete updateData.createdAt;
+      
+      // Handle expectedDate
+      if ('expectedDate' in updateData) {
+        if (!updateData.expectedDate || updateData.expectedDate === "") {
+          updateData.expectedDate = null;
+        } else if (typeof updateData.expectedDate === 'string') {
+          updateData.expectedDate = new Date(updateData.expectedDate);
+        }
       }
-      if (updateData.promoEndDate) {
-        updateData.promoEndDate = updateData.promoEndDate === "" ? null : new Date(updateData.promoEndDate);
+      
+      // Handle promoEndDate
+      if ('promoEndDate' in updateData) {
+        if (!updateData.promoEndDate || updateData.promoEndDate === "") {
+          updateData.promoEndDate = null;
+        } else if (typeof updateData.promoEndDate === 'string') {
+          updateData.promoEndDate = new Date(updateData.promoEndDate);
+        }
       }
       
       const product = await storage.updateProduct(req.params.id, updateData);
