@@ -54,6 +54,8 @@ export const products = pgTable("products", {
   status: text("status").notNull().default("available"), // available, preorder, expected
   expectedDate: timestamp("expected_date"),
   isPromo: boolean("is_promo").default(false),
+  promoPercent: integer("promo_percent").default(0), // Discount percentage for promo
+  promoEndDate: timestamp("promo_end_date"), // When promo ends
   images: text("images").array(),
   catalogType: text("catalog_type").notNull().default("preorder"), // preorder, instock
   createdAt: timestamp("created_at").defaultNow(),

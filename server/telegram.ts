@@ -96,6 +96,16 @@ async function calculatePriceAsync(product: Product, session: UserSession): Prom
     price = parseFloat(product.priceUah?.toString() || '0');
   }
   
+  // Apply promo discount if active
+  const promoPercent = (product as any).promoPercent || 0;
+  const promoEndDate = (product as any).promoEndDate;
+  const isPromoActive = product.isPromo && promoPercent > 0 && 
+    (!promoEndDate || new Date(promoEndDate) > new Date());
+  
+  if (isPromoActive) {
+    price = price * (1 - promoPercent / 100);
+  }
+  
   // Apply wholesale discount
   if (session.customerType === 'wholesale') {
     price = price * 0.95; // -5%
@@ -124,6 +134,16 @@ function calculatePrice(product: Product, session: UserSession): number {
     price = usdPrice * cachedRate;
   }
   
+  // Apply promo discount if active
+  const promoPercent = (product as any).promoPercent || 0;
+  const promoEndDate = (product as any).promoEndDate;
+  const isPromoActive = product.isPromo && promoPercent > 0 && 
+    (!promoEndDate || new Date(promoEndDate) > new Date());
+  
+  if (isPromoActive) {
+    price = price * (1 - promoPercent / 100);
+  }
+  
   if (session.customerType === 'wholesale') {
     price = price * 0.95;
   }
@@ -134,7 +154,7 @@ function calculatePrice(product: Product, session: UserSession): number {
 // Translations
 const t = {
   ua: {
-    welcome: (name: string) => `Вітаємо, ${name}! 🌸\n\nТут ви можете:\n✅ Переглянути асортимент\n✅ Дізнатися персональні ціни\n✅ Оформити замовлення\n✅ Накопичити бонуси\n\nОберіть пункт меню:`,
+    welcome: (name: string) => `Вітаємо, ${name}\nРаді, що ви з нами 🤍\n\nУ цьому боті ми зібрали все, щоб замовлення квітів було простим, швидким і приємним.\n\n🌸 Асортимент\n💰 Персональні ціни\n📦 Замовлення\n🎁 Бонуси\n\nОберіть будь-який пункт з меню та почнемо 🌿`,
     selectLanguage: '🌐 Оберіть мову / Select language:',
     selectCity: '📍 Введіть ваше місто:',
     selectType: '🏪 Оберіть тип клієнта:',
@@ -151,6 +171,10 @@ const t = {
     settings: '⚙️ Налаштування',
     about: 'ℹ️ Про компанію',
     loyalty: '🏆 Бонуси',
+    packaging: '🎀 Упакування',
+    needPackaging: 'Чи потрібне упакування?',
+    yes: '✅ Так',
+    no: '❌ Ні',
     back: '◀️ Назад',
     preorder: '📋 Передзамовлення',
     instock: '✅ В наявності',
@@ -214,6 +238,10 @@ const t = {
     settings: '⚙️ Settings',
     about: 'ℹ️ About',
     loyalty: '🏆 Bonuses',
+    packaging: '🎀 Packaging',
+    needPackaging: 'Do you need packaging?',
+    yes: '✅ Yes',
+    no: '❌ No',
     back: '◀️ Back',
     preorder: '📋 Pre-order',
     instock: '✅ In Stock',
@@ -277,6 +305,10 @@ const t = {
     settings: '⚙️ Настройки',
     about: 'ℹ️ О компании',
     loyalty: '🏆 Бонусы',
+    packaging: '🎀 Упаковка',
+    needPackaging: 'Нужна упаковка?',
+    yes: '✅ Да',
+    no: '❌ Нет',
     back: '◀️ Назад',
     preorder: '📋 Предзаказ',
     instock: '✅ В наличии',
@@ -345,6 +377,7 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
   
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback(txt.catalog, 'catalog'), Markup.button.callback(txt.promotions, 'promotions')],
+    [Markup.button.callback(txt.search, 'search'), Markup.button.callback(txt.packaging, 'packaging')],
     [Markup.button.callback(txt.favorites, 'favorites'), Markup.button.callback(txt.cart, 'cart')],
     [Markup.button.callback(txt.history, 'history'), Markup.button.callback(txt.loyalty, 'loyalty')],
     [Markup.button.callback(txt.manager, 'manager'), Markup.button.callback(txt.settings, 'settings')],
@@ -489,29 +522,35 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   const txt = getText(session);
   const price = await calculatePriceAsync(product, session);
   
-  const statusMap: Record<string, string> = {
-    available: txt.available,
-    preorder: txt.preorderStatus,
-    expected: txt.expected
-  };
-  
   // Short product ID for callbacks (first 8 chars of UUID)
   const shortId = product.id.substring(0, 8);
   
-  // Build beautiful product card
+  // Check promo status
+  const promoPercent = (product as any).promoPercent || 0;
+  const promoEndDate = (product as any).promoEndDate;
+  const isPromoActive = product.isPromo && promoPercent > 0 && 
+    (!promoEndDate || new Date(promoEndDate) > new Date());
+  
+  // Build beautiful product card - clean and simple
   let message = '';
-  if (isPromo) message += '🔥 *АКЦІЯ!*\n';
+  if (isPromo || isPromoActive) {
+    message += `🔥 *АКЦІЯ -${promoPercent}%!*\n`;
+  }
   message += `*${product.name}*\n`;
   message += `_${product.variety}_\n\n`;
   message += `├ ${txt.class}: ${product.flowerClass}\n`;
   message += `├ ${txt.height}: ${product.height} см\n`;
-  message += `├ ${txt.color}: ${product.color}\n`;
-  message += `└ ${statusMap[product.status] || product.status}\n\n`;
-  message += `💰 *${price.toLocaleString('uk-UA')} грн* / ${product.packSize || 25} ${txt.stem}`;
-  if (product.isPromo) {
-    message += `\n🔥 *АКЦІЙНА ЦІНА!*`;
-  } else {
-    message += `\n📦 *АКЦІЯ!*`; // Just in case, to mark promo products
+  message += `└ ${txt.color}: ${product.color}\n\n`;
+  message += `💰 *${price.toLocaleString('uk-UA')} грн*`;
+  
+  // Show promo timer if end date is set
+  if (isPromoActive && promoEndDate) {
+    const endDate = new Date(promoEndDate);
+    const now = new Date();
+    const diffDays = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays > 0 && diffDays <= 7) {
+      message += `\n⏰ _Акція закінчується через ${diffDays} дн._`;
+    }
   }
   
   if (session.customerType === 'wholesale') {
@@ -520,9 +559,9 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   
   const buttons = Markup.inlineKeyboard([
     [
-      Markup.button.callback('📦 +1', `c_1_${shortId}`),
-      Markup.button.callback('📦 +5', `c_5_${shortId}`),
-      Markup.button.callback('📦 +10', `c_10_${shortId}`)
+      Markup.button.callback('+25 шт', `c_25_${shortId}`),
+      Markup.button.callback('+50 шт', `c_50_${shortId}`),
+      Markup.button.callback('+100 шт', `c_100_${shortId}`)
     ],
     [
       Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
@@ -709,7 +748,7 @@ if (bot) {
           [Markup.button.callback('❌ Скасувати', 'cart')]
         ])
       });
-    } else if (session.step === 'menu') {
+    } else if ((session as any).awaitingSearch || session.step === 'menu') {
       // Search functionality
       const searchTerm = ctx.message.text.toLowerCase();
       const products = await getCachedProducts();
@@ -718,11 +757,23 @@ if (bot) {
         p.variety.toLowerCase().includes(searchTerm)
       );
       
+      // Clear search flag
+      (session as any).awaitingSearch = false;
+      
       if (found.length === 0) {
-        await ctx.reply(txt.noProducts);
+        await ctx.reply(
+          txt.noProducts + '\n\nСпробуйте інший пошуковий запит.',
+          Markup.inlineKeyboard([
+            [Markup.button.callback('🔍 Пошук', 'search')],
+            [Markup.button.callback('🏠 Меню', 'menu')]
+          ])
+        );
       } else {
         for (const product of found.slice(0, 5)) {
           await sendProductCard(ctx, product, session);
+        }
+        if (found.length > 5) {
+          await ctx.reply(`Знайдено ще ${found.length - 5} товарів. Уточніть пошук.`);
         }
       }
     }
@@ -1687,6 +1738,60 @@ if (bot) {
         [Markup.button.callback('🏠 Головне меню', 'menu')]
       ]).reply_markup
     });
+  });
+
+  // Search - quick search by flower name
+  bot.action('search', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    session.step = 'catalog'; // Mark as in search mode
+    await ctx.answerCbQuery();
+    
+    await ctx.editMessageText(
+      '🔍 *Пошук квітів*\n\nНадішліть назву квітки для пошуку:',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Меню', 'menu')]
+      ])}
+    );
+    
+    // Mark session for text input
+    (session as any).awaitingSearch = true;
+  });
+
+  // Packaging section
+  bot.action('packaging', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    
+    // Get packaging products (category: packaging or specific type)
+    const products = await getCachedProducts();
+    const packagingProducts = products.filter(p => 
+      p.name.toLowerCase().includes('упакування') || 
+      p.name.toLowerCase().includes('стрічка') ||
+      p.name.toLowerCase().includes('папір') ||
+      p.name.toLowerCase().includes('коробка') ||
+      p.name.toLowerCase().includes('packaging')
+    );
+    
+    if (packagingProducts.length === 0) {
+      await ctx.editMessageText(
+        '🎀 *Упакування*\n\nНаразі упакування не додано в каталог.',
+        { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ])}
+      );
+      return;
+    }
+    
+    // Delete current message and show packaging products
+    try { await ctx.deleteMessage(); } catch {}
+    
+    for (const product of packagingProducts.slice(0, 5)) {
+      await sendProductCard(ctx, product, session);
+    }
+    
+    if (packagingProducts.length > 5) {
+      await ctx.reply(`Показано 5 з ${packagingProducts.length} товарів`);
+    }
   });
 
   // Loyalty

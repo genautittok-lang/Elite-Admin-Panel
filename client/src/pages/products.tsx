@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -68,6 +69,8 @@ const productFormSchema = z.object({
   status: z.string().default("available"),
   catalogType: z.string().default("preorder"),
   isPromo: z.boolean().default(false),
+  promoPercent: z.number().min(0).max(100).optional(),
+  promoEndDate: z.string().optional(),
   images: z.array(z.string()).default([]),
 });
 
@@ -119,6 +122,8 @@ export default function Products() {
       catalogType: "preorder",
       packSize: 25,
       isPromo: false,
+      promoPercent: 0,
+      promoEndDate: "",
     },
   });
 
@@ -206,6 +211,8 @@ export default function Products() {
       status: product.status,
       catalogType: product.catalogType,
       isPromo: product.isPromo || false,
+      promoPercent: (product as any).promoPercent || 0,
+      promoEndDate: (product as any).promoEndDate ? new Date((product as any).promoEndDate).toISOString().split('T')[0] : "",
       images: product.images || [],
     });
     setIsDialogOpen(true);
@@ -228,17 +235,6 @@ export default function Products() {
     return matchesSearch && matchesCountry && matchesCatalog;
   });
 
-  const statusColors: Record<string, string> = {
-    available: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-    preorder: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
-    expected: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-  };
-
-  const statusLabels: Record<string, string> = {
-    available: "В наявності",
-    preorder: "Під замовлення",
-    expected: "Очікується",
-  };
 
   return (
     <div className="p-4 md:p-6 space-y-4 md:space-y-6">
@@ -468,29 +464,7 @@ export default function Products() {
                   />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Статус</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-product-status">
-                              <SelectValue placeholder="Оберіть статус" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="available">В наявності</SelectItem>
-                            <SelectItem value="preorder">Під замовлення</SelectItem>
-                            <SelectItem value="expected">Очікується</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="grid gap-4 sm:grid-cols-1">
                   <FormField
                     control={form.control}
                     name="catalogType"
@@ -512,6 +486,71 @@ export default function Products() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Promo settings */}
+                <div className="space-y-4 p-4 rounded-lg border bg-orange-50 dark:bg-orange-950/20">
+                  <FormField
+                    control={form.control}
+                    name="isPromo"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between gap-3">
+                        <FormLabel className="font-semibold text-orange-600 dark:text-orange-400">
+                          Акційний товар
+                        </FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-product-promo"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {form.watch("isPromo") && (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="promoPercent"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Знижка (%)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={100}
+                                placeholder="0"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                data-testid="input-product-promo-percent"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="promoEndDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Дата закінчення акції</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="date"
+                                {...field}
+                                data-testid="input-product-promo-end"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -693,9 +732,11 @@ export default function Products() {
                         <p className="font-bold">
                           {product.priceUsd ? `$${Number(product.priceUsd).toFixed(2)}` : "—"}
                         </p>
-                        <Badge className={`${statusColors[product.status]} text-xs mt-1`}>
-                          {statusLabels[product.status]}
-                        </Badge>
+                        {product.isPromo && (
+                          <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 text-xs mt-1">
+                            {(product as any).promoPercent > 0 ? `-${(product as any).promoPercent}%` : '🔥 Акція'}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 pt-2 border-t">
@@ -720,7 +761,7 @@ export default function Products() {
                       <TableHead>Клас</TableHead>
                       <TableHead>Висота</TableHead>
                       <TableHead>Ціна</TableHead>
-                      <TableHead>Статус</TableHead>
+                      <TableHead>Акція</TableHead>
                       <TableHead className="text-right">Дії</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -760,9 +801,13 @@ export default function Products() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge className={statusColors[product.status] || ""}>
-                            {statusLabels[product.status] || product.status}
-                          </Badge>
+                          {product.isPromo ? (
+                            <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                              {(product as any).promoPercent > 0 ? `-${(product as any).promoPercent}%` : '🔥'}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
