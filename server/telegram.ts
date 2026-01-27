@@ -633,42 +633,54 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     ]
   ]);
   
-  // Send photo if available
+  // Send photos as media group if multiple, or single photo
   if (product.images && product.images.length > 0) {
-    const imagePath = product.images[0];
     try {
-      // Get base URL for production (Railway provides RAILWAY_PUBLIC_DOMAIN)
       const baseUrl = process.env.BASE_URL || 
                       (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null);
       
-      // For /uploads/ path in production, use public URL
-      if (imagePath.startsWith('/uploads/') && baseUrl) {
-        const imageUrl = `${baseUrl}${imagePath}`;
-        const msg = await ctx.replyWithPhoto(imageUrl, {
-          caption: message,
-          parse_mode: 'Markdown',
-          reply_markup: buttons.reply_markup
-        });
-        registerMessage(session, msg.message_id);
+      // Helper to get image source
+      const getImageSource = (imagePath: string) => {
+        if (imagePath.startsWith('/uploads/') && baseUrl) {
+          return `${baseUrl}${imagePath}`;
+        }
+        if (imagePath.startsWith('/uploads/')) {
+          const relativePath = imagePath.slice(1);
+          const fullPath = path.resolve(process.cwd(), relativePath);
+          if (fs.existsSync(fullPath)) {
+            return { source: fullPath };
+          }
+        }
+        if (imagePath.startsWith('attached_assets/') || imagePath.startsWith('./')) {
+          const fullPath = path.resolve(process.cwd(), imagePath);
+          if (fs.existsSync(fullPath)) {
+            return { source: fullPath };
+          }
+        }
+        return imagePath; // URL
+      };
+      
+      // If multiple images - send as media group
+      if (product.images.length > 1) {
+        const mediaGroup = product.images.slice(0, 10).map((img, idx) => ({
+          type: 'photo' as const,
+          media: getImageSource(img) as any,
+          caption: idx === 0 ? message : undefined,
+          parse_mode: idx === 0 ? 'Markdown' as const : undefined
+        }));
+        
+        const msgs = await ctx.replyWithMediaGroup(mediaGroup);
+        msgs.forEach(m => registerMessage(session, m.message_id));
+        
+        // Send buttons separately after media group
+        const btnMsg = await ctx.reply('Оберіть дію:', buttons);
+        registerMessage(session, btnMsg.message_id);
         return;
       }
       
-      // Check if it's a local file path (attached_assets, uploads in dev)
-      if (imagePath.startsWith('attached_assets/') || imagePath.startsWith('./') || imagePath.startsWith('/uploads/')) {
-        // For /uploads/ path, strip the leading slash
-        const relativePath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
-        const fullPath = path.resolve(process.cwd(), relativePath);
-        if (fs.existsSync(fullPath)) {
-          const msg = await ctx.replyWithPhoto(
-            { source: fullPath },
-            { caption: message, parse_mode: 'Markdown', reply_markup: buttons.reply_markup }
-          );
-          registerMessage(session, msg.message_id);
-          return;
-        }
-      }
-      // Try as URL
-      const msg = await ctx.replyWithPhoto(imagePath, {
+      // Single image
+      const imageSource = getImageSource(product.images[0]);
+      const msg = await ctx.replyWithPhoto(imageSource as any, {
         caption: message,
         parse_mode: 'Markdown',
         reply_markup: buttons.reply_markup
