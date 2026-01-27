@@ -230,6 +230,9 @@ export default function Products() {
   };
 
   const filteredProducts = products?.filter((product) => {
+    // Exclude packaging from products list (packaging has its own page)
+    if (product.catalogType === 'packaging') return false;
+    
     const matchesSearch = 
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.variety.toLowerCase().includes(search.toLowerCase());
