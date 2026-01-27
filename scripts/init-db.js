@@ -42,8 +42,10 @@ async function initDatabase() {
     if (checkResult.rows[0].exists) {
       console.log('📦 Tables already exist - running migrations...');
       
-      // Run migrations to add missing columns
+      // Run migrations to add missing columns and fix column types
       const migrations = [
+        // Products table - fix height column type (should be TEXT, not INTEGER)
+        `ALTER TABLE products ALTER COLUMN height TYPE TEXT USING height::TEXT`,
         // Products table - all new fields
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_promo BOOLEAN DEFAULT false`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_percent INTEGER DEFAULT 0`,
