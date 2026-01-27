@@ -604,11 +604,12 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
       // For /uploads/ path in production, use public URL
       if (imagePath.startsWith('/uploads/') && baseUrl) {
         const imageUrl = `${baseUrl}${imagePath}`;
-        await ctx.replyWithPhoto(imageUrl, {
+        const msg = await ctx.replyWithPhoto(imageUrl, {
           caption: message,
           parse_mode: 'Markdown',
           reply_markup: buttons.reply_markup
         });
+        registerMessage(session, msg.message_id);
         return;
       }
       
@@ -618,25 +619,30 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
         const relativePath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
         const fullPath = path.resolve(process.cwd(), relativePath);
         if (fs.existsSync(fullPath)) {
-          await ctx.replyWithPhoto(
+          const msg = await ctx.replyWithPhoto(
             { source: fullPath },
             { caption: message, parse_mode: 'Markdown', reply_markup: buttons.reply_markup }
           );
+          registerMessage(session, msg.message_id);
           return;
         }
       }
       // Try as URL
-      await ctx.replyWithPhoto(imagePath, {
+      const msg = await ctx.replyWithPhoto(imagePath, {
         caption: message,
         parse_mode: 'Markdown',
         reply_markup: buttons.reply_markup
       });
+      registerMessage(session, msg.message_id);
+      return;
     } catch (err) {
       console.error('Failed to send photo:', err);
-      await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
+      const msg = await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
+      registerMessage(session, msg.message_id);
     }
   } else {
-    await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
+    const msg = await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
+    registerMessage(session, msg.message_id);
   }
 }
 
