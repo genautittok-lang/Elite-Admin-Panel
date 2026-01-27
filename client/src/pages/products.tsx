@@ -120,7 +120,7 @@ export default function Products() {
       color: "",
       status: "available",
       catalogType: "preorder",
-      packSize: 25,
+      packSize: 1,
       isPromo: false,
       promoPercent: 0,
       promoEndDate: "",
@@ -207,7 +207,7 @@ export default function Products() {
       color: product.color,
       priceUsd: product.priceUsd?.toString() || "",
       priceUah: product.priceUah?.toString() || "",
-      packSize: product.packSize || 25,
+      packSize: product.packSize || 1,
       status: product.status,
       catalogType: product.catalogType,
       isPromo: product.isPromo || false,
@@ -418,7 +418,7 @@ export default function Products() {
                     name="priceUsd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ціна (USD)</FormLabel>
+                        <FormLabel>Ціна за шт (USD)</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="0.00" 
@@ -433,7 +433,7 @@ export default function Products() {
                   
                   {/* UAH price - auto-calculated from USD */}
                   <FormItem>
-                    <FormLabel>Ціна (UAH) - авто</FormLabel>
+                    <FormLabel>Ціна за шт (UAH) - авто</FormLabel>
                     <div className="flex items-center h-9 px-3 rounded-md border bg-muted text-muted-foreground">
                       {(() => {
                         const usd = parseFloat(form.watch("priceUsd") || "0");
@@ -453,8 +453,9 @@ export default function Products() {
                         <FormControl>
                           <Input
                             type="number"
+                            min={1}
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 25)}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                             data-testid="input-product-pack"
                           />
                         </FormControl>
