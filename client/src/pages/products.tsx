@@ -49,6 +49,7 @@ import {
   Filter,
   Flower2,
   ImagePlus,
+  Video,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -72,6 +73,7 @@ const productFormSchema = z.object({
   promoPercent: z.number().min(0).max(100).optional(),
   promoEndDate: z.string().optional(),
   images: z.array(z.string()).default([]),
+  videos: z.array(z.string()).default([]),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -214,6 +216,7 @@ export default function Products() {
       promoPercent: (product as any).promoPercent || 0,
       promoEndDate: (product as any).promoEndDate ? new Date((product as any).promoEndDate).toISOString().split('T')[0] : "",
       images: product.images || [],
+      videos: (product as any).videos || [],
     });
     setIsDialogOpen(true);
   };
@@ -645,6 +648,75 @@ export default function Products() {
                       />
                       <ImagePlus className="h-6 w-6 mb-1" />
                       <span className="text-[10px]">Завантажити</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FormLabel>Відео</FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    {form.watch("videos")?.map((url, index) => (
+                      <div key={index} className="relative aspect-video rounded-md overflow-hidden border group">
+                        <video src={url} className="w-full h-full object-cover" controls />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = form.getValues("videos") || [];
+                            form.setValue("videos", current.filter((_, i) => i !== index));
+                          }}
+                          className="absolute top-1 right-1 bg-black/60 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3 w-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                    <label
+                      className="aspect-video rounded-md border border-dashed flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <input
+                        type="file"
+                        accept="video/*"
+                        multiple
+                        className="hidden"
+                        data-testid="input-product-video-upload"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (!files || files.length === 0) return;
+                          
+                          for (const file of Array.from(files)) {
+                            const formData = new FormData();
+                            formData.append('video', file);
+                            
+                            try {
+                              const response = await fetch('/api/upload-video', {
+                                method: 'POST',
+                                body: formData,
+                              });
+                              
+                              if (response.ok) {
+                                const data = await response.json();
+                                const current = form.getValues("videos") || [];
+                                form.setValue("videos", [...current, data.url]);
+                              } else {
+                                toast({
+                                  title: "Помилка",
+                                  description: "Не вдалося завантажити відео",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Помилка",
+                                description: "Не вдалося завантажити відео",
+                                variant: "destructive",
+                              });
+                            }
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      <Video className="h-6 w-6 mb-1" />
+                      <span className="text-[10px]">Завантажити відео</span>
                     </label>
                   </div>
                 </div>

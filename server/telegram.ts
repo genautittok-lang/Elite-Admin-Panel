@@ -240,7 +240,13 @@ const t = {
     changeLanguage: '🌐 Змінити мову',
     changeCity: '📍 Змінити місто',
     changeType: '🏪 Змінити тип клієнта',
-    quantity: 'Кількість'
+    quantity: 'Кількість',
+    referral: '👥 Реферальна програма',
+    referralInfo: (code: string, balance: number, count: number, botUsername: string) => {
+      return `👥 *Реферальна програма*\n\n🔗 Ваше посилання:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Ваш баланс: ${balance} грн\n👥 Запрошено друзів: ${count}\n\n📌 *Як це працює:*\n• Поділіться посиланням з друзями\n• Коли друг зробить перше замовлення - ви отримаєте *200 грн* на баланс\n• Використовуйте баланс як знижку на наступне замовлення`;
+    },
+    referralBonus: '🎉 Вітаємо! Ви отримали 200 грн за запрошеного друга!',
+    referralWelcome: (inviterName: string) => `🎁 Вас запросив ${inviterName}! Приємних покупок!`
   },
   en: {
     welcome: (name: string) => `Welcome, ${name}! 🌸\n\nHere you can:\n✅ Browse assortment\n✅ Check personal prices\n✅ Place orders\n✅ Earn bonuses\n\nSelect a menu item:`,
@@ -307,7 +313,13 @@ const t = {
     changeLanguage: '🌐 Change Language',
     changeCity: '📍 Change City',
     changeType: '🏪 Change Type',
-    quantity: 'Quantity'
+    quantity: 'Quantity',
+    referral: '👥 Referral Program',
+    referralInfo: (code: string, balance: number, count: number, botUsername: string) => {
+      return `👥 *Referral Program*\n\n🔗 Your link:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Your balance: ${balance} UAH\n👥 Friends invited: ${count}\n\n📌 *How it works:*\n• Share your link with friends\n• When a friend makes first order - you get *200 UAH* to balance\n• Use balance as discount on next order`;
+    },
+    referralBonus: '🎉 Congrats! You received 200 UAH for inviting a friend!',
+    referralWelcome: (inviterName: string) => `🎁 You were invited by ${inviterName}! Enjoy shopping!`
   },
   ru: {
     welcome: (name: string) => `Приветствуем, ${name}! 🌸\n\nЗдесь вы можете:\n✅ Посмотреть ассортимент\n✅ Узнать персональные цены\n✅ Оформить заказ\n✅ Накопить бонусы\n\nВыберите пункт меню:`,
@@ -374,7 +386,13 @@ const t = {
     changeLanguage: '🌐 Сменить язык',
     changeCity: '📍 Сменить город',
     changeType: '🏪 Сменить тип клиента',
-    quantity: 'Количество'
+    quantity: 'Количество',
+    referral: '👥 Реферальная программа',
+    referralInfo: (code: string, balance: number, count: number, botUsername: string) => {
+      return `👥 *Реферальная программа*\n\n🔗 Ваша ссылка:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Ваш баланс: ${balance} грн\n👥 Приглашено друзей: ${count}\n\n📌 *Как это работает:*\n• Поделитесь ссылкой с друзьями\n• Когда друг сделает первый заказ - вы получите *200 грн* на баланс\n• Используйте баланс как скидку на следующий заказ`;
+    },
+    referralBonus: '🎉 Поздравляем! Вы получили 200 грн за приглашенного друга!',
+    referralWelcome: (inviterName: string) => `🎁 Вас пригласил ${inviterName}! Приятных покупок!`
   }
 };
 
@@ -402,8 +420,8 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
     [Markup.button.callback(txt.search, 'search'), Markup.button.callback(txt.packaging, 'packaging')],
     [Markup.button.callback(txt.favorites, 'favorites'), Markup.button.callback(txt.cart, 'cart')],
     [Markup.button.callback(txt.history, 'history'), Markup.button.callback(txt.loyalty, 'loyalty')],
-    [Markup.button.callback(txt.manager, 'manager'), Markup.button.callback(txt.settings, 'settings')],
-    [Markup.button.callback(txt.about, 'about')]
+    [Markup.button.callback(txt.referral, 'referral'), Markup.button.callback(txt.manager, 'manager')],
+    [Markup.button.callback(txt.settings, 'settings'), Markup.button.callback(txt.about, 'about')]
   ]);
 
   // Always clear previous messages before showing menu
@@ -668,6 +686,10 @@ if (bot) {
     const telegramUsername = ctx.from?.username || '';
     const session = getSession(telegramId);
     
+    // Check for referral code in start payload
+    const startPayload = (ctx.message as any)?.text?.split(' ')[1] || '';
+    const referralCode = startPayload.startsWith('ref_') ? startPayload.substring(4) : null;
+    
     // Detect language from Telegram locale (default to 'ua')
     const telegramLang = ctx.from?.language_code;
     let detectedLang: 'ua' | 'en' | 'ru' = 'ua';
@@ -679,6 +701,7 @@ if (bot) {
       // Check if customer already exists in database
       const customers = await storage.getCustomers();
       let existingCustomer = customers.find(c => c.telegramId === telegramId);
+      let referrerName: string | null = null;
       
       if (existingCustomer) {
         // Restore session from customer data
@@ -686,6 +709,16 @@ if (bot) {
         session.city = existingCustomer.city || '';
         session.customerType = (existingCustomer.customerType as 'flower_shop' | 'wholesale') || 'flower_shop';
       } else {
+        // New user - check if they came from a referral link
+        let referredById: string | undefined;
+        if (referralCode) {
+          const referrer = await storage.getCustomerByReferralCode(referralCode);
+          if (referrer && referrer.telegramId !== telegramId) {
+            referredById = referrer.id;
+            referrerName = referrer.name;
+          }
+        }
+        
         // New user - create customer with detected language (no onboarding)
         session.language = detectedLang;
         session.customerType = 'flower_shop';
@@ -700,11 +733,18 @@ if (bot) {
           city: '',
           customerType: 'flower_shop',
           language: detectedLang,
-          isBlocked: false
+          isBlocked: false,
+          referredBy: referredById
         });
       }
       
       session.step = 'menu';
+      
+      // Show referral welcome message if applicable
+      const txt = getText(session);
+      if (referrerName) {
+        await ctx.reply(txt.referralWelcome(referrerName));
+      }
       
       // Go directly to main menu with welcome message
       await showMainMenu(ctx, session);
@@ -1575,6 +1615,19 @@ if (bot) {
       total -= discountApplied;
     }
     
+    // Calculate referral balance discount (will be applied and deducted on order completion)
+    let referralDiscountApplied = 0;
+    const referralBalance = parseFloat(customer?.referralBalance || '0');
+    if (referralBalance > 0) {
+      // Apply up to 100% of referral balance (max the total amount)
+      referralDiscountApplied = Math.min(referralBalance, total);
+      if (referralDiscountApplied > 0) {
+        total -= referralDiscountApplied;
+        // Note: Balance will be deducted when order is completed (not now)
+        // This ensures balance is only used for successfully completed orders
+      }
+    }
+    
     // Create order with beautiful number
     const orderNumber = `FL-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
@@ -1584,12 +1637,18 @@ if (bot) {
       itemsDescription = itemsDescription.substring(0, 197) + '...';
     }
     
+    // Build discount info for comment
+    let discountInfo = '';
+    if (discountApplied > 0) discountInfo += ` | Знижка -${discountApplied} грн`;
+    if (referralDiscountApplied > 0) discountInfo += ` | Реф.бонус -${referralDiscountApplied} грн`;
+    
     const order = await storage.createOrder({
       orderNumber,
       customerId: customer.id,
       status: 'new',
       totalUah: total.toString(),
-      comment: `${session.city || ''} | ${itemsDescription}${discountApplied > 0 ? ' | Знижка -' + discountApplied + ' грн' : ''}`
+      referralDiscountPending: referralDiscountApplied.toString(), // Store for deduction on completion
+      comment: `${session.city || ''} | ${itemsDescription}${discountInfo}`
     });
     
     // Persist order items
@@ -1602,6 +1661,9 @@ if (bot) {
         totalUah: item.total.toString()
       });
     }
+    
+    // Referral bonus will be awarded when order is confirmed (in admin panel)
+    // This ensures the bonus is only given for real completed orders
     
     // Exclude loyalty update from checkout, only handle in order status update
     /* 
@@ -1637,6 +1699,9 @@ if (bot) {
     const nextOrderDiscount = ((customer.totalOrders || 0) + 1) % 10 === 0 ? '1000' : '0';
     if (discountApplied > 0) {
       bonusMessage += `\n\n✅ *Застосовано знижку:* -${discountApplied.toLocaleString('uk-UA')} грн`;
+    }
+    if (referralDiscountApplied > 0) {
+      bonusMessage += `\n\n🎁 *Використано реферальний бонус:* -${referralDiscountApplied.toLocaleString('uk-UA')} грн`;
     }
     if (nextOrderDiscount === '1000') {
       bonusMessage += '\n\n🎁 *Вітаємо! Наступне замовлення зі знижкою 1000 грн!*';
@@ -1908,6 +1973,39 @@ if (bot) {
     await ctx.editMessageText(txt.loyaltyInfo(points, orders), Markup.inlineKeyboard([
       [Markup.button.callback('🏠 Головне меню', 'menu')]
     ]));
+  });
+
+  // Referral Program
+  bot.action('referral', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const txt = getText(session);
+    const telegramId = ctx.from!.id.toString();
+    await ctx.answerCbQuery();
+    
+    const customers = await storage.getCustomers();
+    const customer = customers.find(c => c.telegramId === telegramId);
+    
+    if (!customer) {
+      await ctx.editMessageText('❌ Клієнт не знайдений', Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Головне меню', 'menu')]
+      ]));
+      return;
+    }
+    
+    const code = customer.referralCode || 'N/A';
+    const balance = parseFloat(customer.referralBalance || '0');
+    const count = customer.referralCount || 0;
+    const botUsername = ctx.botInfo?.username || 'kvitka_opt_bot';
+    
+    await ctx.editMessageText(
+      txt.referralInfo(code, balance, count, botUsername),
+      { 
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🏠 Головне меню', 'menu')]
+        ])
+      }
+    );
   });
 
   // Settings

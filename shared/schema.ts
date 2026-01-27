@@ -56,7 +56,8 @@ export const products = pgTable("products", {
   isPromo: boolean("is_promo").default(false),
   promoPercent: integer("promo_percent").default(0), // Discount percentage for promo
   promoEndDate: timestamp("promo_end_date"), // When promo ends
-  images: text("images").array(),
+  images: text("images").array(), // Multiple photos
+  videos: text("videos").array(), // Multiple videos
   catalogType: text("catalog_type").notNull().default("preorder"), // preorder, instock, packaging
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -86,6 +87,12 @@ export const customers = pgTable("customers", {
   totalSpent: decimal("total_spent", { precision: 12, scale: 2 }).default("0"),
   nextOrderDiscount: decimal("next_order_discount", { precision: 10, scale: 2 }).default("0"),
   isBlocked: boolean("is_blocked").default(false),
+  // Referral system
+  referralCode: text("referral_code").unique(), // Personal referral code (e.g., "REF123ABC")
+  referredBy: varchar("referred_by"), // ID of customer who referred this one
+  referralBalance: decimal("referral_balance", { precision: 10, scale: 2 }).default("0"), // Discount balance from referrals
+  referralCount: integer("referral_count").default(0), // Number of successful referrals
+  referralBonusAwarded: boolean("referral_bonus_awarded").default(false), // True if referrer has already been credited for this customer
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -105,6 +112,7 @@ export const orders = pgTable("orders", {
   status: text("status").notNull().default("new"),
   totalUah: decimal("total_uah", { precision: 12, scale: 2 }).notNull(),
   comment: text("comment"),
+  referralDiscountPending: decimal("referral_discount_pending", { precision: 10, scale: 2 }).default("0"), // Referral discount to apply on completion
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

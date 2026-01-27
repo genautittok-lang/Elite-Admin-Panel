@@ -34,7 +34,7 @@ const storage_multer = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage_multer,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for images
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -43,6 +43,28 @@ const upload = multer({
       return cb(null, true);
     }
     cb(new Error('Only image files are allowed'));
+  }
+});
+
+// Video upload config - larger file size limit with strict filtering
+const uploadVideo = multer({ 
+  storage: storage_multer,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB limit for videos
+  fileFilter: (req, file, cb) => {
+    // Strict video type whitelist - require BOTH extension AND mimetype to match
+    const allowedVideo: Record<string, string[]> = {
+      '.mp4': ['video/mp4'],
+      '.mov': ['video/quicktime'],
+      '.avi': ['video/x-msvideo', 'video/avi'],
+      '.webm': ['video/webm'],
+      '.mkv': ['video/x-matroska']
+    };
+    const ext = path.extname(file.originalname).toLowerCase();
+    const validMimes = allowedVideo[ext];
+    if (validMimes && validMimes.includes(file.mimetype)) {
+      return cb(null, true);
+    }
+    cb(new Error('Invalid video file type. Allowed: MP4, MOV, AVI, WEBM, MKV'));
   }
 });
 
@@ -92,6 +114,34 @@ export async function registerRoutes(
       res.json({ urls });
     } catch (error) {
       res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
+  // Video upload
+  app.post("/api/upload-video", uploadVideo.single('video'), (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ error: "No video uploaded" });
+      }
+      const url = `/uploads/${file.filename}`;
+      res.json({ url });
+    } catch (error) {
+      res.status(500).json({ error: "Video upload failed" });
+    }
+  });
+
+  // Multiple videos upload
+  app.post("/api/upload-videos", uploadVideo.array('videos', 5), (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No videos uploaded" });
+      }
+      const urls = files.map(file => `/uploads/${file.filename}`);
+      res.json({ urls });
+    } catch (error) {
+      res.status(500).json({ error: "Videos upload failed" });
     }
   });
 
@@ -463,6 +513,33 @@ export async function registerRoutes(
             loyaltyPoints,
             nextOrderDiscount
           } as any);
+          
+          // Referral bonus: award 200 UAH to referrer on first completed order
+          // Use referralBonusAwarded flag to ensure idempotency (bonus only given once ever)
+          if (!customer.referralBonusAwarded && customer.referredBy) {
+            try {
+              const REFERRAL_BONUS = 200;
+              await storage.addReferralBonus(customer.referredBy, REFERRAL_BONUS);
+              // Mark as awarded so it can never be given again even if order status changes
+              await storage.updateCustomer(customer.id, { referralBonusAwarded: true } as any);
+              console.log(`Referral bonus ${REFERRAL_BONUS} UAH given to ${customer.referredBy} for customer ${customer.id}`);
+            } catch (e) {
+              console.error('Failed to award referral bonus:', e);
+            }
+          }
+          
+          // Deduct referral balance that was used for this order (only on first completion)
+          const pendingDiscount = parseFloat((order as any).referralDiscountPending || '0');
+          if (pendingDiscount > 0 && oldOrder.status !== 'completed') {
+            try {
+              await storage.useReferralBalance(customer.id, pendingDiscount);
+              // Clear the pending amount so it's not deducted again
+              await storage.updateOrder(order.id, { referralDiscountPending: '0' } as any);
+              console.log(`Referral balance ${pendingDiscount} UAH deducted from customer ${customer.id} for order ${order.id}`);
+            } catch (e) {
+              console.error('Failed to deduct referral balance:', e);
+            }
+          }
         }
       }
 
