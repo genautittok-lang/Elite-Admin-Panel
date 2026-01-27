@@ -480,6 +480,7 @@ export default function Products() {
                           <SelectContent>
                             <SelectItem value="preorder">Передзамовлення</SelectItem>
                             <SelectItem value="instock">В наявності</SelectItem>
+                            <SelectItem value="packaging">Упакування</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

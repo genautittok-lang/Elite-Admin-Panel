@@ -21,7 +21,7 @@ interface UserSession {
   customerType?: 'flower_shop' | 'wholesale';
   cart: { productId: string; quantity: number }[];
   favorites: string[];
-  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'awaiting_confirmation';
+  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'awaiting_confirmation' | 'search';
   currentCountry?: string;
   currentFarm?: string;
   currentType?: string;
@@ -383,7 +383,19 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
     [Markup.button.callback(txt.manager, 'manager'), Markup.button.callback(txt.settings, 'settings')],
     [Markup.button.callback(txt.about, 'about')]
   ]);
+
+  // Attempt to delete previous messages if it's not an edit
+  if (!edit) {
+    try {
+      await ctx.deleteMessage();
+    } catch (e) {
+      // Ignore if message can't be deleted
+    }
+  }
   
+  // Set step to menu to ensure text messages don't trigger handlers
+  session.step = 'menu';
+
   if (edit && 'editMessageText' in ctx) {
     try {
       await ctx.editMessageText(txt.welcome(firstName), keyboard);
@@ -1740,21 +1752,54 @@ if (bot) {
     });
   });
 
-  // Search - quick search by flower name
   bot.action('search', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
-    session.step = 'catalog'; // Mark as in search mode
+    session.step = 'search';
     await ctx.answerCbQuery();
     
     await ctx.editMessageText(
-      '🔍 *Пошук квітів*\n\nНадішліть назву квітки для пошуку:',
+      '🔍 *Пошук товарів*\n\nВведіть назву квітки або сорт для пошуку:',
       { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
         [Markup.button.callback('🏠 Меню', 'menu')]
       ])}
     );
-    
-    // Mark session for text input
-    (session as any).awaitingSearch = true;
+  });
+
+  bot.on('text', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const txt = getText(session);
+
+    if (session.step === 'search') {
+      const query = ctx.message.text.toLowerCase();
+      const products = await getCachedProducts();
+      
+      const results = products.filter(p => 
+        p.name.toLowerCase().includes(query) || 
+        p.variety.toLowerCase().includes(query)
+      );
+
+      // Try to delete user's text message and the prompt
+      try { await ctx.deleteMessage(); } catch {}
+
+      if (results.length === 0) {
+        await ctx.reply('❌ Товарів не знайдено. Спробуйте іншу назву або поверніться в меню:', Markup.inlineKeyboard([
+          [Markup.button.callback('🔍 Шукати ще', 'search')],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ]));
+        return;
+      }
+
+      for (const product of results.slice(0, 10)) {
+        await sendProductCard(ctx, product, session);
+      }
+
+      await ctx.reply(`📊 Знайдено товарів: ${results.length}`, Markup.inlineKeyboard([
+        [Markup.button.callback('🔍 Шукати ще', 'search')],
+        [Markup.button.callback('🏠 Меню', 'menu')]
+      ]));
+      session.step = 'menu';
+      return;
+    }
   });
 
   // Packaging section
@@ -1762,9 +1807,10 @@ if (bot) {
     const session = getSession(ctx.from!.id.toString());
     await ctx.answerCbQuery();
     
-    // Get packaging products (category: packaging or specific type)
+    // Get packaging products (catalogType: packaging)
     const products = await getCachedProducts();
     const packagingProducts = products.filter(p => 
+      p.catalogType === 'packaging' ||
       p.name.toLowerCase().includes('упакування') || 
       p.name.toLowerCase().includes('стрічка') ||
       p.name.toLowerCase().includes('папір') ||
