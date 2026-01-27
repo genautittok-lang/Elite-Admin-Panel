@@ -44,13 +44,21 @@ async function initDatabase() {
       
       // Run migrations to add missing columns
       const migrations = [
-        // Products table - promo fields
+        // Products table - all new fields
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_promo BOOLEAN DEFAULT false`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_percent INTEGER DEFAULT 0`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_end_date TIMESTAMP`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS catalog_type TEXT DEFAULT 'preorder'`,
-        // Customers table - referral bonus flag
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT[]`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS videos TEXT[]`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS expected_date TIMESTAMP`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_size INTEGER DEFAULT 25`,
+        // Customers table - referral fields
         `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_bonus_awarded BOOLEAN DEFAULT false`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_code TEXT`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referred_by TEXT`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_balance NUMERIC(10,2) DEFAULT 0`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_count INTEGER DEFAULT 0`,
         // Orders table - referral discount pending
         `ALTER TABLE orders ADD COLUMN IF NOT EXISTS referral_discount_pending NUMERIC(10,2) DEFAULT 0`,
       ];
