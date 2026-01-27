@@ -12,6 +12,7 @@ import {
   Factory,
   Tags,
   Bell,
+  Box,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +39,7 @@ const mainMenuItems = [
 
 const catalogMenuItems = [
   { title: "Товари", url: "/products", icon: Package },
+  { title: "Упакування", url: "/packaging", icon: Box },
   { title: "Країни", url: "/countries", icon: Globe },
   { title: "Плантації", url: "/plantations", icon: Factory },
   { title: "Типи квітів", url: "/flower-types", icon: Flower2 },

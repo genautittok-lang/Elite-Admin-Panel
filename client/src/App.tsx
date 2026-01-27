@@ -11,6 +11,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import Dashboard from "@/pages/dashboard";
 import Orders from "@/pages/orders";
 import Products from "@/pages/products";
+import Packaging from "@/pages/packaging";
 import Customers from "@/pages/customers";
 import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/orders" component={Orders} />
       <Route path="/products" component={Products} />
+      <Route path="/packaging" component={Packaging} />
       <Route path="/customers" component={Customers} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/settings" component={Settings} />

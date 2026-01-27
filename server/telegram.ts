@@ -481,8 +481,6 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   if (currentFilters.height) message += `✓ Висота: ${currentFilters.height} см\n`;
   if (currentFilters.color) message += `✓ Колір: ${currentFilters.color}\n`;
   
-  message += `\n📊 Знайдено товарів: ${filteredProducts.length}`;
-  
   const buttons: any[] = [];
   
   // Class filter
@@ -509,9 +507,6 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
     )]);
   }
   
-  // Show products button
-  buttons.push([Markup.button.callback(`👀 Показати товари (${filteredProducts.length})`, 'show_filtered_products')]);
-  
   // Clear filters if any are set
   if (currentFilters.flowerClass || currentFilters.height || currentFilters.color) {
     buttons.push([Markup.button.callback('🔄 Скинути фільтри', 'clear_filters')]);
@@ -525,16 +520,36 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   }
   buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
   
-  try {
-    await ctx.editMessageText(message, { 
-      parse_mode: 'Markdown', 
-      ...Markup.inlineKeyboard(buttons) 
-    });
-  } catch {
-    await ctx.reply(message, { 
-      parse_mode: 'Markdown', 
-      ...Markup.inlineKeyboard(buttons) 
-    });
+  // If there are filter options available, show filter menu, else show products directly
+  const hasFilterOptions = classes.length > 1 || heights.length > 1 || colors.length > 1;
+  
+  if (hasFilterOptions) {
+    // Show filter menu with options
+    try {
+      await ctx.editMessageText(message, { 
+        parse_mode: 'Markdown', 
+        ...Markup.inlineKeyboard(buttons) 
+      });
+    } catch {
+      await ctx.reply(message, { 
+        parse_mode: 'Markdown', 
+        ...Markup.inlineKeyboard(buttons) 
+      });
+    }
+    
+    // Show products directly after filter menu
+    for (const product of filteredProducts) {
+      await sendProductCard(ctx, product, session);
+    }
+  } else {
+    // No filter options - just show products directly
+    try {
+      await ctx.deleteMessage();
+    } catch {}
+    
+    for (const product of filteredProducts) {
+      await sendProductCard(ctx, product, session);
+    }
   }
 }
 

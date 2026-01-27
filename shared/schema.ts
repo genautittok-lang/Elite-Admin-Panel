@@ -42,12 +42,12 @@ export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   variety: text("variety").notNull(),
-  typeId: varchar("type_id").notNull(),
-  countryId: varchar("country_id").notNull(),
+  typeId: varchar("type_id"),
+  countryId: varchar("country_id"),
   plantationId: varchar("plantation_id"),
-  flowerClass: text("flower_class").notNull(), // Standard, Premium, Garden
-  height: text("height").notNull(), // in cm, comma-separated for multiple heights (e.g., "40, 50, 60")
-  color: text("color").notNull(),
+  flowerClass: text("flower_class").notNull().default("Standard"), // Standard, Premium, Garden
+  height: text("height").notNull().default("0"), // in cm, comma-separated for multiple heights (e.g., "40, 50, 60")
+  color: text("color").notNull().default(""),
   priceUsd: decimal("price_usd", { precision: 10, scale: 2 }),
   priceUah: decimal("price_uah", { precision: 10, scale: 2 }),
   packSize: integer("pack_size").default(25),
@@ -57,7 +57,7 @@ export const products = pgTable("products", {
   promoPercent: integer("promo_percent").default(0), // Discount percentage for promo
   promoEndDate: timestamp("promo_end_date"), // When promo ends
   images: text("images").array(),
-  catalogType: text("catalog_type").notNull().default("preorder"), // preorder, instock
+  catalogType: text("catalog_type").notNull().default("preorder"), // preorder, instock, packaging
   createdAt: timestamp("created_at").defaultNow(),
 });
 

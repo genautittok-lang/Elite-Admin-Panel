@@ -199,8 +199,8 @@ export default function Products() {
     form.reset({
       name: product.name,
       variety: product.variety,
-      typeId: product.typeId,
-      countryId: product.countryId,
+      typeId: product.typeId || "",
+      countryId: product.countryId || "",
       plantationId: product.plantationId || undefined,
       flowerClass: product.flowerClass,
       height: String(product.height),
@@ -449,7 +449,7 @@ export default function Products() {
                     name="packSize"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Упаковка (шт)</FormLabel>
+                        <FormLabel>Кількість (шт)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -480,7 +480,6 @@ export default function Products() {
                           <SelectContent>
                             <SelectItem value="preorder">Передзамовлення</SelectItem>
                             <SelectItem value="instock">В наявності</SelectItem>
-                            <SelectItem value="packaging">Упакування</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
