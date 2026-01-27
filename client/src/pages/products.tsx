@@ -464,7 +464,7 @@ export default function Products() {
                   />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-1">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="catalogType"
@@ -487,6 +487,32 @@ export default function Products() {
                       </FormItem>
                     )}
                   />
+                  {form.watch("catalogType") === "preorder" && (
+                    <FormField
+                      control={form.control}
+                      name="plantationId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Плантація</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-product-plantation">
+                                <SelectValue placeholder="Оберіть плантацію" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {plantations?.map((plantation) => (
+                                <SelectItem key={plantation.id} value={plantation.id}>
+                                  {plantation.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
 
                 {/* Promo settings */}

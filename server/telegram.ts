@@ -38,6 +38,7 @@ interface UserSession {
     phone?: string;
     address?: string;
   };
+  messagesToDelete: number[];
 }
 
 const sessions: Map<string, UserSession> = new Map();
@@ -63,12 +64,33 @@ function getSession(telegramId: string): UserSession {
       cart: [],
       favorites: [],
       step: 'language',
-      lastInteraction: Date.now()
+      lastInteraction: Date.now(),
+      messagesToDelete: []
     });
   }
   const session = sessions.get(telegramId)!;
   session.lastInteraction = Date.now();
+  if (!session.messagesToDelete) session.messagesToDelete = [];
   return session;
+}
+
+function registerMessage(session: UserSession, messageId: number | undefined) {
+  if (messageId && !session.messagesToDelete.includes(messageId)) {
+    session.messagesToDelete.push(messageId);
+  }
+}
+
+async function clearOldMessages(ctx: Context, session: UserSession) {
+  if (!session.messagesToDelete || session.messagesToDelete.length === 0) return;
+  
+  for (const msgId of session.messagesToDelete) {
+    try {
+      await ctx.telegram.deleteMessage(ctx.chat!.id, msgId);
+    } catch (e) {
+      // Ignore if message already deleted or too old
+    }
+  }
+  session.messagesToDelete = [];
 }
 
 // Cleanup old sessions every hour
@@ -384,27 +406,14 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
     [Markup.button.callback(txt.about, 'about')]
   ]);
 
-  // Attempt to delete previous messages if it's not an edit
-  if (!edit) {
-    try {
-      await ctx.deleteMessage();
-    } catch (e) {
-      // Ignore if message can't be deleted
-    }
-  }
+  // Always clear previous messages before showing menu
+  await clearOldMessages(ctx, session);
   
   // Set step to menu to ensure text messages don't trigger handlers
   session.step = 'menu';
 
-  if (edit && 'editMessageText' in ctx) {
-    try {
-      await ctx.editMessageText(txt.welcome(firstName), keyboard);
-    } catch {
-      await ctx.reply(txt.welcome(firstName), keyboard);
-    }
-  } else {
-    await ctx.reply(txt.welcome(firstName), keyboard);
-  }
+  const welcomeMsg = await ctx.reply(txt.welcome(firstName), keyboard);
+  registerMessage(session, welcomeMsg.message_id);
 }
 
 // Helper function to show filter menu
