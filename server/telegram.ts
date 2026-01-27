@@ -662,38 +662,60 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
 }
 
 if (bot) {
-  // Start command - check if user exists, skip onboarding if yes
+  // Start command - go directly to menu without onboarding
   bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
+    const telegramUsername = ctx.from?.username || '';
     const session = getSession(telegramId);
     
-    // Check if customer already exists in database
-    const customers = await storage.getCustomers();
-    const existingCustomer = customers.find(c => c.telegramId === telegramId);
+    // Detect language from Telegram locale (default to 'ua')
+    const telegramLang = ctx.from?.language_code;
+    let detectedLang: 'ua' | 'en' | 'ru' = 'ua';
+    if (telegramLang === 'en') detectedLang = 'en';
+    else if (telegramLang === 'ru') detectedLang = 'ru';
+    else if (telegramLang === 'uk') detectedLang = 'ua';
     
-    if (existingCustomer) {
-      // Restore session from customer data
-      session.language = (existingCustomer.language as 'ua' | 'en' | 'ru') || 'ua';
-      session.city = existingCustomer.city || '';
-      session.customerType = (existingCustomer.customerType as 'flower_shop' | 'wholesale') || 'flower_shop';
+    try {
+      // Check if customer already exists in database
+      const customers = await storage.getCustomers();
+      let existingCustomer = customers.find(c => c.telegramId === telegramId);
+      
+      if (existingCustomer) {
+        // Restore session from customer data
+        session.language = (existingCustomer.language as 'ua' | 'en' | 'ru') || 'ua';
+        session.city = existingCustomer.city || '';
+        session.customerType = (existingCustomer.customerType as 'flower_shop' | 'wholesale') || 'flower_shop';
+      } else {
+        // New user - create customer with detected language (no onboarding)
+        session.language = detectedLang;
+        session.customerType = 'flower_shop';
+        session.city = '';
+        
+        existingCustomer = await storage.createCustomer({
+          telegramId,
+          telegramUsername,
+          name: ctx.from?.first_name || 'Telegram User',
+          phone: '',
+          shopName: '',
+          city: '',
+          customerType: 'flower_shop',
+          language: detectedLang,
+          isBlocked: false
+        });
+      }
+      
       session.step = 'menu';
       
-      // Go directly to main menu
+      // Go directly to main menu with welcome message
       await showMainMenu(ctx, session);
-      return;
+    } catch (error) {
+      console.error('Error in /start:', error);
+      // Show menu anyway with defaults
+      session.language = detectedLang;
+      session.customerType = 'flower_shop';
+      session.step = 'menu';
+      await showMainMenu(ctx, session);
     }
-    
-    // New user - start onboarding
-    session.step = 'language';
-    
-    await ctx.reply(
-      t.ua.selectLanguage,
-      Markup.inlineKeyboard([
-        [Markup.button.callback('🇺🇦 Українська', 'lang_ua')],
-        [Markup.button.callback('🇬🇧 English', 'lang_en')],
-        [Markup.button.callback('🇷🇺 Русский', 'lang_ru')]
-      ])
-    );
   });
 
   // Language selection
