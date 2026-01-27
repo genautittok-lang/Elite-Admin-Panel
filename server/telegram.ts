@@ -913,10 +913,11 @@ if (bot) {
         await sendProductCard(ctx, product, session);
       }
 
-      await ctx.reply(`📊 Знайдено товарів: ${results.length}`, Markup.inlineKeyboard([
+      const summaryMsg = await ctx.reply(`📊 Знайдено товарів: ${results.length}`, Markup.inlineKeyboard([
         [Markup.button.callback('🔍 Шукати ще', 'search')],
         [Markup.button.callback('🏠 Меню', 'menu')]
       ]));
+      session.messagesToDelete.push(summaryMsg.message_id);
       session.step = 'menu';
     }
   });
