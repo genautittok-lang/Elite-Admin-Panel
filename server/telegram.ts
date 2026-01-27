@@ -1466,8 +1466,11 @@ if (bot) {
     const telegramId = ctx.from!.id.toString();
     await ctx.answerCbQuery();
     
+    // Clear all previous messages for clean cart view
+    await clearSessionMessages(ctx, session);
+    
     if (session.cart.length === 0) {
-      await ctx.editMessageText(
+      const msg = await ctx.reply(
         '🧺 *Ваш кошик порожній*\n\nДодайте товари з каталогу!',
         { 
           parse_mode: 'Markdown',
@@ -1477,6 +1480,7 @@ if (bot) {
           ])
         }
       );
+      registerMessage(session, msg.message_id);
       return;
     }
     
@@ -1529,7 +1533,8 @@ if (bot) {
     buttons.push([Markup.button.callback('🗑️ Очистити', 'clear_cart'), Markup.button.callback('🌹 Додати ще', 'catalog')]);
     buttons.push([Markup.button.callback('◀️ Меню', 'menu')]);
     
-    await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
+    const cartMsg = await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
+    registerMessage(session, cartMsg.message_id);
   });
 
   // Clear cart
@@ -1974,15 +1979,18 @@ if (bot) {
     const txt = getText(session);
 
     if (session.step === 'search') {
-      const query = ctx.message.text.toLowerCase();
+      // Normalize query - trim, lowercase, remove extra spaces
+      const query = ctx.message.text.toLowerCase().trim().replace(/\s+/g, ' ');
       const products = await getCachedProducts();
       
       // Exclude packaging from search results
-      const results = products.filter(p => 
-        p.catalogType !== 'packaging' &&
-        (p.name.toLowerCase().includes(query) || 
-        p.variety.toLowerCase().includes(query))
-      );
+      // Search in name and variety with normalized comparison
+      const results = products.filter(p => {
+        if (p.catalogType === 'packaging') return false;
+        const name = (p.name || '').toLowerCase().trim();
+        const variety = (p.variety || '').toLowerCase().trim();
+        return name.includes(query) || variety.includes(query);
+      });
 
       // Try to delete user's text message and the prompt
       try { await ctx.deleteMessage(); } catch {}
