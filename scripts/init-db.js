@@ -46,6 +46,9 @@ async function initDatabase() {
       const migrations = [
         // Products table - fix height column type (should be TEXT, not INTEGER)
         `ALTER TABLE products ALTER COLUMN height TYPE TEXT USING height::TEXT`,
+        // Products table - make type_id and country_id nullable (for packaging products)
+        `ALTER TABLE products ALTER COLUMN type_id DROP NOT NULL`,
+        `ALTER TABLE products ALTER COLUMN country_id DROP NOT NULL`,
         // Products table - all new fields
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_promo BOOLEAN DEFAULT false`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_percent INTEGER DEFAULT 0`,
