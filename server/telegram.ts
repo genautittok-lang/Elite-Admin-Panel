@@ -21,7 +21,7 @@ interface UserSession {
   customerType?: 'flower_shop' | 'wholesale';
   cart: { productId: string; quantity: number }[];
   favorites: string[];
-  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'awaiting_confirmation' | 'search';
+  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_packaging' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'awaiting_confirmation' | 'search';
   currentCountry?: string;
   currentFarm?: string;
   currentType?: string;
@@ -585,6 +585,9 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   const isPromoActive = product.isPromo && promoPercent > 0 && 
     (!promoEndDate || new Date(promoEndDate) > new Date());
   
+  // Check if it's a packaging product
+  const isPackaging = product.catalogType === 'packaging';
+  
   // Build beautiful product card - clean and simple
   let message = '';
   if (isPromo || isPromoActive) {
@@ -592,9 +595,13 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   }
   message += `*${product.name}*\n`;
   message += `_${product.variety}_\n\n`;
-  message += `├ ${txt.class}: ${product.flowerClass}\n`;
-  message += `├ ${txt.height}: ${product.height} см\n`;
-  message += `└ ${txt.color}: ${product.color}\n\n`;
+  
+  // For packaging products - show only name and price (no class/height/color)
+  if (!isPackaging) {
+    message += `├ ${txt.class}: ${product.flowerClass}\n`;
+    message += `├ ${txt.height}: ${product.height} см\n`;
+    message += `└ ${txt.color}: ${product.color}\n\n`;
+  }
   message += `💰 *${price.toLocaleString('uk-UA')} грн*`;
   
   // Show promo timer if end date is set
@@ -1512,15 +1519,100 @@ if (bot) {
     await showMainMenu(ctx, session, true);
   });
 
-  // Checkout - start contact details collection
+  // Checkout - start contact details collection (with packaging check)
   bot.action('checkout', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
     const txt = getText(session);
     await ctx.answerCbQuery();
     
-    // Start collecting contact details
+    // Check if cart has packaging products
+    const products = await getCachedProducts();
+    const hasPackaging = session.cart.some(item => {
+      const product = products.find(p => p.id === item.productId);
+      return product && product.catalogType === 'packaging';
+    });
+    
+    // If no packaging in cart - ask about it first
+    if (!hasPackaging) {
+      const packagingProducts = products.filter(p => p.catalogType === 'packaging' && p.status === 'available');
+      
+      if (packagingProducts.length > 0) {
+        session.step = 'checkout_packaging';
+        
+        // Build packaging options
+        const buttons: any[][] = [];
+        for (const pkg of packagingProducts.slice(0, 5)) {
+          const price = await calculatePriceAsync(pkg, session);
+          const shortId = pkg.id.substring(0, 8);
+          buttons.push([Markup.button.callback(`📦 ${pkg.name} - ${price} грн`, `pkg_${shortId}`)]);
+        }
+        buttons.push([Markup.button.callback('❌ Без упаковки', 'skip_packaging')]);
+        buttons.push([Markup.button.callback('🔙 Назад до кошика', 'cart')]);
+        
+        await ctx.reply(
+          '📦 *УПАКОВКА*\n━━━━━━━━━━━━━━━━━━\n\nЧи потрібна вам упаковка?\nОберіть один з варіантів:',
+          { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons)}
+        );
+        return;
+      }
+    }
+    
+    // No packaging needed or no packaging available - proceed to contact details
     session.step = 'checkout_name';
     session.checkoutData = {};
+    
+    await ctx.reply(
+      '📝 *ОФОРМЛЕННЯ ЗАМОВЛЕННЯ*\n━━━━━━━━━━━━━━━━━━\n\nВведіть ваше *ім\'я та прізвище*:',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+        [Markup.button.callback('❌ Скасувати', 'cart')]
+      ])}
+    );
+  });
+  
+  // Handle packaging selection during checkout
+  bot.action(/^pkg_(.+)$/, async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const shortId = ctx.match[1];
+    await ctx.answerCbQuery('Упаковку додано');
+    
+    // Find full product ID from short ID
+    const products = await getCachedProducts();
+    const product = products.find(p => p.id.startsWith(shortId) && p.catalogType === 'packaging');
+    
+    if (product) {
+      // Add 1 packaging to cart
+      const existingItem = session.cart.find(i => i.productId === product.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        session.cart.push({ productId: product.id, quantity: 1 });
+      }
+    }
+    
+    // Proceed to contact details
+    session.step = 'checkout_name';
+    session.checkoutData = {};
+    
+    try { await ctx.deleteMessage(); } catch {}
+    
+    await ctx.reply(
+      '📝 *ОФОРМЛЕННЯ ЗАМОВЛЕННЯ*\n━━━━━━━━━━━━━━━━━━\n\n✅ Упаковку додано!\n\nВведіть ваше *ім\'я та прізвище*:',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+        [Markup.button.callback('❌ Скасувати', 'cart')]
+      ])}
+    );
+  });
+  
+  // Skip packaging during checkout
+  bot.action('skip_packaging', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    
+    // Proceed to contact details
+    session.step = 'checkout_name';
+    session.checkoutData = {};
+    
+    try { await ctx.deleteMessage(); } catch {}
     
     await ctx.reply(
       '📝 *ОФОРМЛЕННЯ ЗАМОВЛЕННЯ*\n━━━━━━━━━━━━━━━━━━\n\nВведіть ваше *ім\'я та прізвище*:',
