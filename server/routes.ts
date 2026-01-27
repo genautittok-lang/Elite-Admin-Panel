@@ -345,6 +345,14 @@ export async function registerRoutes(
         updateData.plantationId = null;
       }
       
+      // Convert date strings to Date objects for timestamp columns
+      if (updateData.expectedDate) {
+        updateData.expectedDate = updateData.expectedDate === "" ? null : new Date(updateData.expectedDate);
+      }
+      if (updateData.promoEndDate) {
+        updateData.promoEndDate = updateData.promoEndDate === "" ? null : new Date(updateData.promoEndDate);
+      }
+      
       const product = await storage.updateProduct(req.params.id, updateData);
       if (!product) {
         return res.status(404).json({ error: "Product not found" });

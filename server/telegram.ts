@@ -852,35 +852,8 @@ if (bot) {
           [Markup.button.callback('❌ Скасувати', 'cart')]
         ])
       });
-    } else if ((session as any).awaitingSearch || session.step === 'menu') {
-      // Search functionality
-      const searchTerm = ctx.message.text.toLowerCase();
-      const products = await getCachedProducts();
-      const found = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) || 
-        p.variety.toLowerCase().includes(searchTerm)
-      );
-      
-      // Clear search flag
-      (session as any).awaitingSearch = false;
-      
-      if (found.length === 0) {
-        await ctx.reply(
-          txt.noProducts + '\n\nСпробуйте інший пошуковий запит.',
-          Markup.inlineKeyboard([
-            [Markup.button.callback('🔍 Пошук', 'search')],
-            [Markup.button.callback('🏠 Меню', 'menu')]
-          ])
-        );
-      } else {
-        for (const product of found.slice(0, 5)) {
-          await sendProductCard(ctx, product, session);
-        }
-        if (found.length > 5) {
-          await ctx.reply(`Знайдено ще ${found.length - 5} товарів. Уточніть пошук.`);
-        }
-      }
     }
+    // Note: Search functionality is handled by the dedicated 'search' step handler below
   });
 
   // Customer type selection (onboarding - create customer)
