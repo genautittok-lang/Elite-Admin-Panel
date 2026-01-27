@@ -1969,12 +1969,16 @@ if (bot) {
     session.step = 'search';
     await ctx.answerCbQuery();
     
-    await ctx.editMessageText(
+    // Clear old messages and send new prompt (can't edit media messages)
+    await clearOldMessages(ctx, session);
+    
+    const msg = await ctx.reply(
       '🔍 *Пошук товарів*\n\nВведіть назву квітки або сорт для пошуку:',
       { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
         [Markup.button.callback('🏠 Меню', 'menu')]
       ])}
     );
+    session.messagesToDelete.push(msg.message_id);
   });
 
   bot.on('text', async (ctx) => {
