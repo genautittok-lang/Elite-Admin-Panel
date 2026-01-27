@@ -1986,6 +1986,7 @@ if (bot) {
 
   bot.on('text', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
+    console.log('📝 Text received:', ctx.message.text, '| Step:', session.step);
     const txt = getText(session);
 
     if (session.step === 'search') {
