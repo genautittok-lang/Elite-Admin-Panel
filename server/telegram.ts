@@ -883,8 +883,42 @@ if (bot) {
           [Markup.button.callback('❌ Скасувати', 'cart')]
         ])
       });
+    } else if (session.step === 'search') {
+      // Search handler - moved here from duplicate bot.on('text')
+      console.log('🔍 Processing search query:', ctx.message.text);
+      const query = ctx.message.text.toLowerCase().trim().replace(/\s+/g, ' ');
+      const products = await getCachedProducts();
+      
+      // Exclude packaging from search results
+      const results = products.filter(p => {
+        if (p.catalogType === 'packaging') return false;
+        const name = (p.name || '').toLowerCase().trim();
+        const variety = (p.variety || '').toLowerCase().trim();
+        return name.includes(query) || variety.includes(query);
+      });
+
+      // Delete user's text message
+      try { await ctx.deleteMessage(); } catch {}
+
+      if (results.length === 0) {
+        await ctx.reply('❌ Товарів не знайдено. Спробуйте іншу назву або поверніться в меню:', Markup.inlineKeyboard([
+          [Markup.button.callback('🔍 Шукати ще', 'search')],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ]));
+        session.step = 'menu';
+        return;
+      }
+
+      for (const product of results.slice(0, 10)) {
+        await sendProductCard(ctx, product, session);
+      }
+
+      await ctx.reply(`📊 Знайдено товарів: ${results.length}`, Markup.inlineKeyboard([
+        [Markup.button.callback('🔍 Шукати ще', 'search')],
+        [Markup.button.callback('🏠 Меню', 'menu')]
+      ]));
+      session.step = 'menu';
     }
-    // Note: Search functionality is handled by the dedicated 'search' step handler below
   });
 
   // Customer type selection (onboarding - create customer)
@@ -1982,51 +2016,6 @@ if (bot) {
       ])}
     );
     session.messagesToDelete.push(msg.message_id);
-  });
-
-  bot.on('text', async (ctx) => {
-    const session = getSession(ctx.from!.id.toString());
-    console.log('📝 Text received:', ctx.message.text, '| Step:', session.step);
-    const txt = getText(session);
-
-    if (session.step === 'search') {
-      console.log('🔍 Processing search query:', ctx.message.text);
-      // Normalize query - trim, lowercase, remove extra spaces
-      const query = ctx.message.text.toLowerCase().trim().replace(/\s+/g, ' ');
-      const products = await getCachedProducts();
-      console.log('🔍 Products count:', products.length);
-      
-      // Exclude packaging from search results
-      // Search in name and variety with normalized comparison
-      const results = products.filter(p => {
-        if (p.catalogType === 'packaging') return false;
-        const name = (p.name || '').toLowerCase().trim();
-        const variety = (p.variety || '').toLowerCase().trim();
-        return name.includes(query) || variety.includes(query);
-      });
-
-      // Try to delete user's text message and the prompt
-      try { await ctx.deleteMessage(); } catch {}
-
-      if (results.length === 0) {
-        await ctx.reply('❌ Товарів не знайдено. Спробуйте іншу назву або поверніться в меню:', Markup.inlineKeyboard([
-          [Markup.button.callback('🔍 Шукати ще', 'search')],
-          [Markup.button.callback('🏠 Меню', 'menu')]
-        ]));
-        return;
-      }
-
-      for (const product of results.slice(0, 10)) {
-        await sendProductCard(ctx, product, session);
-      }
-
-      await ctx.reply(`📊 Знайдено товарів: ${results.length}`, Markup.inlineKeyboard([
-        [Markup.button.callback('🔍 Шукати ще', 'search')],
-        [Markup.button.callback('🏠 Меню', 'menu')]
-      ]));
-      session.step = 'menu';
-      return;
-    }
   });
 
   // Packaging section
