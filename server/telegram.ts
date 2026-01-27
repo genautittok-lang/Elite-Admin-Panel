@@ -672,31 +672,58 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
         return imagePath; // URL
       };
       
+      // Filter valid images (check if local files exist)
+      const validImages = product.images.filter(img => {
+        if (img.startsWith('/uploads/')) {
+          // For local uploads, check if file exists
+          const relativePath = img.slice(1);
+          const fullPath = path.resolve(process.cwd(), relativePath);
+          return fs.existsSync(fullPath) || baseUrl; // OK if baseUrl exists (Railway)
+        }
+        return true; // External URLs are OK
+      });
+      
       // If multiple images - send as media group
-      if (product.images.length > 1) {
-        const mediaGroup = product.images.slice(0, 10).map((img, idx) => ({
+      if (validImages.length > 1) {
+        const mediaGroup = validImages.slice(0, 10).map((img, idx) => ({
           type: 'photo' as const,
           media: getImageSource(img) as any,
           caption: idx === 0 ? message : undefined,
           parse_mode: idx === 0 ? 'Markdown' as const : undefined
         }));
         
-        const msgs = await ctx.replyWithMediaGroup(mediaGroup);
-        msgs.forEach(m => registerMessage(session, m.message_id));
-        
-        // Send buttons separately after media group
-        const btnMsg = await ctx.reply('Оберіть дію:', buttons);
-        registerMessage(session, btnMsg.message_id);
-        return;
+        try {
+          const msgs = await ctx.replyWithMediaGroup(mediaGroup);
+          msgs.forEach(m => registerMessage(session, m.message_id));
+          
+          // Send buttons separately after media group
+          const btnMsg = await ctx.reply('Оберіть дію:', buttons);
+          registerMessage(session, btnMsg.message_id);
+          return;
+        } catch (mediaErr) {
+          // If media group fails, try single image or text
+          console.error('Media group failed, trying single image:', mediaErr);
+        }
       }
       
-      // Single image
-      const imageSource = getImageSource(product.images[0]);
-      const msg = await ctx.replyWithPhoto(imageSource as any, {
-        caption: message,
-        parse_mode: 'Markdown',
-        reply_markup: buttons.reply_markup
-      });
+      // Single image (or fallback from failed media group)
+      if (validImages.length >= 1) {
+        const imageSource = getImageSource(validImages[0]);
+        try {
+          const msg = await ctx.replyWithPhoto(imageSource as any, {
+            caption: message,
+            parse_mode: 'Markdown',
+            reply_markup: buttons.reply_markup
+          });
+          registerMessage(session, msg.message_id);
+          return;
+        } catch (photoErr) {
+          console.error('Single photo failed, sending text only:', photoErr);
+        }
+      }
+      
+      // Fallback to text only
+      const msg = await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
       registerMessage(session, msg.message_id);
       return;
     } catch (err) {

@@ -1,0 +1,65 @@
+🔍 Search action triggered
+🔍 Session step set to search
+🔍 Old messages cleared
+🔍 Processing search query: Хрезантема
+🔍 Search action triggered
+🔍 Session step set to search
+🔍 Old messages cleared
+🔍 Processing search query: Троянда
+Failed to send photo: TelegramError: 400: Bad Request: failed to send message #2 with the error message "WEBPAGE_MEDIA_EMPTY"
+      chat_id: 7820995179,
+    at Telegram.callApi (/app/node_modules/telegraf/lib/core/network/client.js:315:19)
+      media: [Array],
+      message_thread_id: undefined
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Un (/app/dist/index.cjs:234:1416)
+    at async /app/dist/index.cjs:245:1410
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    at async /app/node_modules/telegraf/lib/composer.js:519:21
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    at async /app/node_modules/telegraf/lib/composer.js:519:21
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    at async /app/node_modules/telegraf/lib/composer.js:519:21 {
+  response: {
+    ok: false,
+    error_code: 400,
+    description: 'Bad Request: failed to send message #2 with the error message "WEBPAGE_MEDIA_EMPTY"'
+  },
+  on: {
+    method: 'sendMediaGroup',
+    payload: {
+    }
+  }
+}
+🔍 Old messages cleared
+🔍 Search action triggered
+🔍 Session step set to search
+🔍 Old messages cleared
+🔍 Search action triggered
+🔍 Session step set to search
+🔍 Processing search query: Троянда
+Failed to send photo: TelegramError: 400: Bad Request: failed to send message #2 with the error message "WEBPAGE_MEDIA_EMPTY"
+      chat_id: 7820995179,
+    at Telegram.callApi (/app/node_modules/telegraf/lib/core/network/client.js:315:19)
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+      media: [Array],
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      message_thread_id: undefined
+    at async /app/node_modules/telegraf/lib/composer.js:519:21 {
+    at async Un (/app/dist/index.cjs:234:1416)
+  response: {
+    at async /app/dist/index.cjs:245:1410
+    ok: false,
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    error_code: 400,
+    at async /app/node_modules/telegraf/lib/composer.js:519:21
+    description: 'Bad Request: failed to send message #2 with the error message "WEBPAGE_MEDIA_EMPTY"'
+    at async execute (/app/node_modules/telegraf/lib/composer.js:518:17)
+    at async /app/node_modules/telegraf/lib/composer.js:519:21
+  },
+  on: {
+    method: 'sendMediaGroup',
+    payload: {
+    }
+  }
+}
