@@ -4,6 +4,19 @@ import type { Product, Customer, Country, FlowerType } from '@shared/schema';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Helper to check if URL is accessible (for Railway ephemeral storage)
+async function isUrlAccessible(url: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeout);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
 if (!token) {
@@ -672,16 +685,26 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
         return imagePath; // URL
       };
       
-      // Filter valid images (check if local files exist)
-      const validImages = product.images.filter(img => {
+      // Filter valid images - check availability for Railway
+      const validImages: string[] = [];
+      for (const img of product.images) {
         if (img.startsWith('/uploads/')) {
-          // For local uploads, check if file exists
           const relativePath = img.slice(1);
           const fullPath = path.resolve(process.cwd(), relativePath);
-          return fs.existsSync(fullPath) || baseUrl; // OK if baseUrl exists (Railway)
+          if (fs.existsSync(fullPath)) {
+            validImages.push(img);
+          } else if (baseUrl) {
+            // On Railway - check if URL is accessible
+            const url = `${baseUrl}${img}`;
+            if (await isUrlAccessible(url)) {
+              validImages.push(img);
+            }
+          }
+        } else {
+          // External URL - assume OK
+          validImages.push(img);
         }
-        return true; // External URLs are OK
-      });
+      }
       
       // If multiple images - send as media group
       if (validImages.length > 1) {
