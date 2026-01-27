@@ -40,7 +40,30 @@ async function initDatabase() {
     `);
 
     if (checkResult.rows[0].exists) {
-      console.log('📦 Tables already exist - skipping initialization');
+      console.log('📦 Tables already exist - running migrations...');
+      
+      // Run migrations to add missing columns
+      const migrations = [
+        // Products table - promo fields
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_promo BOOLEAN DEFAULT false`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_percent INTEGER DEFAULT 0`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_end_date TIMESTAMP`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS catalog_type TEXT DEFAULT 'preorder'`,
+        // Customers table - referral bonus flag
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_bonus_awarded BOOLEAN DEFAULT false`,
+        // Orders table - referral discount pending
+        `ALTER TABLE orders ADD COLUMN IF NOT EXISTS referral_discount_pending NUMERIC(10,2) DEFAULT 0`,
+      ];
+      
+      for (const migration of migrations) {
+        try {
+          await client.query(migration);
+        } catch (err) {
+          // Ignore errors (column might already exist)
+        }
+      }
+      
+      console.log('✅ Migrations applied successfully');
       console.log('');
       console.log('╔════════════════════════════════════════════════════════════╗');
       console.log('║              ✅ Database ready!                            ║');
