@@ -1965,12 +1965,15 @@ if (bot) {
   });
 
   bot.action('search', async (ctx) => {
+    console.log('🔍 Search action triggered');
     const session = getSession(ctx.from!.id.toString());
     session.step = 'search';
+    console.log('🔍 Session step set to search');
     await ctx.answerCbQuery();
     
     // Clear old messages and send new prompt (can't edit media messages)
     await clearOldMessages(ctx, session);
+    console.log('🔍 Old messages cleared');
     
     const msg = await ctx.reply(
       '🔍 *Пошук товарів*\n\nВведіть назву квітки або сорт для пошуку:',
@@ -1986,9 +1989,11 @@ if (bot) {
     const txt = getText(session);
 
     if (session.step === 'search') {
+      console.log('🔍 Processing search query:', ctx.message.text);
       // Normalize query - trim, lowercase, remove extra spaces
       const query = ctx.message.text.toLowerCase().trim().replace(/\s+/g, ' ');
       const products = await getCachedProducts();
+      console.log('🔍 Products count:', products.length);
       
       // Exclude packaging from search results
       // Search in name and variety with normalized comparison
