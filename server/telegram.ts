@@ -618,12 +618,21 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     message += `\n🏷️ _Ваша знижка: -5%_`;
   }
   
+  // Different quantity buttons for packaging vs flowers
+  const quantityButtons = isPackaging 
+    ? [
+        Markup.button.callback('+1 шт', `c_1_${shortId}`),
+        Markup.button.callback('+5 шт', `c_5_${shortId}`),
+        Markup.button.callback('+25 шт', `c_25_${shortId}`)
+      ]
+    : [
+        Markup.button.callback('+25 шт', `c_25_${shortId}`),
+        Markup.button.callback('+50 шт', `c_50_${shortId}`),
+        Markup.button.callback('+100 шт', `c_100_${shortId}`)
+      ];
+  
   const buttons = Markup.inlineKeyboard([
-    [
-      Markup.button.callback('+25 шт', `c_25_${shortId}`),
-      Markup.button.callback('+50 шт', `c_50_${shortId}`),
-      Markup.button.callback('+100 шт', `c_100_${shortId}`)
-    ],
+    quantityButtons,
     [
       Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
       Markup.button.callback('🧺 Кошик', 'cart')
@@ -1823,7 +1832,8 @@ if (bot) {
     await ctx.answerCbQuery();
     
     const products = await getCachedProducts();
-    const promos = products.filter(p => p.isPromo);
+    // Exclude packaging from promotions
+    const promos = products.filter(p => p.isPromo && p.catalogType !== 'packaging');
     
     if (promos.length === 0) {
       await ctx.editMessageText('Наразі немає акційних товарів', Markup.inlineKeyboard([
@@ -1967,9 +1977,11 @@ if (bot) {
       const query = ctx.message.text.toLowerCase();
       const products = await getCachedProducts();
       
+      // Exclude packaging from search results
       const results = products.filter(p => 
-        p.name.toLowerCase().includes(query) || 
-        p.variety.toLowerCase().includes(query)
+        p.catalogType !== 'packaging' &&
+        (p.name.toLowerCase().includes(query) || 
+        p.variety.toLowerCase().includes(query))
       );
 
       // Try to delete user's text message and the prompt
