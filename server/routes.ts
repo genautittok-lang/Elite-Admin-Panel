@@ -320,13 +320,39 @@ export async function registerRoutes(
 
   app.post("/api/products", async (req, res) => {
     try {
-      const result = insertProductSchema.safeParse(req.body);
+      // Clean up data - handle date fields that come as strings
+      const productData = { ...req.body };
+      
+      // Convert date strings to Date objects
+      if (productData.expectedDate && typeof productData.expectedDate === 'string') {
+        productData.expectedDate = productData.expectedDate ? new Date(productData.expectedDate) : null;
+      }
+      if (productData.promoEndDate && typeof productData.promoEndDate === 'string') {
+        productData.promoEndDate = productData.promoEndDate ? new Date(productData.promoEndDate) : null;
+      }
+      
+      // Handle empty values
+      if (productData.priceUsd === "" || productData.priceUsd === undefined) {
+        productData.priceUsd = null;
+      }
+      if (productData.plantationId === "" || productData.plantationId === undefined) {
+        productData.plantationId = null;
+      }
+      if (!productData.promoEndDate || productData.promoEndDate === "") {
+        productData.promoEndDate = null;
+      }
+      if (!productData.expectedDate || productData.expectedDate === "") {
+        productData.expectedDate = null;
+      }
+      
+      const result = insertProductSchema.safeParse(productData);
       if (!result.success) {
         return res.status(400).json({ error: "Validation failed", details: result.error.flatten() });
       }
       const product = await storage.createProduct(result.data);
       res.status(201).json(product);
     } catch (error) {
+      console.error("Create product error:", error);
       res.status(500).json({ error: "Failed to create product" });
     }
   });

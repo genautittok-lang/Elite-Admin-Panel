@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, ne } from "drizzle-orm";
 import {
   users, countries, plantations, flowerTypes, products,
   customers, orders, orderItems, settings,
@@ -197,7 +197,7 @@ export class DatabaseStorage implements IStorage {
 
   async getCustomers(): Promise<Customer[]> {
     const customerList = await db.select().from(customers);
-    const orderList = await db.select().from(orders).where(sql`${orders.status} != 'cancelled'`);
+    const orderList = await db.select().from(orders).where(ne(orders.status, 'cancelled'));
 
     return customerList.map(customer => {
       const customerOrders = orderList.filter(o => o.customerId === customer.id);
