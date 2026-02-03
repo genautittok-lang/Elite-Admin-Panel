@@ -21,7 +21,7 @@ interface UserSession {
   customerType?: 'flower_shop' | 'wholesale';
   cart: { productId: string; quantity: number }[];
   favorites: string[];
-  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'awaiting_confirmation' | 'search';
+  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'checkout_packaging' | 'awaiting_confirmation' | 'search';
   currentCountry?: string;
   currentFarm?: string;
   currentType?: string;
@@ -37,6 +37,7 @@ interface UserSession {
     name?: string;
     phone?: string;
     address?: string;
+    needsPackaging?: boolean;
   };
   messagesToDelete: number[];
 }
@@ -580,23 +581,38 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   const isPromoActive = product.isPromo && promoPercent > 0 && 
     (!promoEndDate || new Date(promoEndDate) > new Date());
   
+  // Check if this is a packaging product
+  const isPackaging = (product as any).flowerType?.category === 'packaging' ||
+    product.name.toLowerCase().includes('упакування') ||
+    product.name.toLowerCase().includes('плівка') ||
+    product.name.toLowerCase().includes('папір') ||
+    product.name.toLowerCase().includes('стрічка') ||
+    product.name.toLowerCase().includes('коробка') ||
+    product.name.toLowerCase().includes('сітка');
+  
   // Build beautiful product card - clean and simple
   let message = '';
   if (isPromo || isPromoActive) {
     message += `🔥 *АКЦІЯ -${promoPercent}%!*\n`;
   }
   message += `*${product.name}*\n`;
-  message += `_${product.variety}_\n\n`;
-  message += `├ ${txt.class}: ${product.flowerClass}\n`;
-  message += `├ ${txt.height}: ${product.height} см\n`;
-  message += `└ ${txt.color}: ${product.color}\n\n`;
   
-  // For preorder items, show both USD and UAH
-  if (product.catalogType === 'preorder') {
-    const usdPrice = parseFloat(product.priceUsd?.toString() || '0');
-    message += `💰 *$${usdPrice.toFixed(2)} / ${price.toLocaleString('uk-UA')} грн*`;
+  // For packaging - only show name and price
+  if (isPackaging) {
+    message += `\n💰 *${price.toLocaleString('uk-UA')} грн*`;
   } else {
-    message += `💰 *${price.toLocaleString('uk-UA')} грн*`;
+    message += `_${product.variety}_\n\n`;
+    message += `├ ${txt.class}: ${product.flowerClass}\n`;
+    message += `├ ${txt.height}: ${product.height} см\n`;
+    message += `└ ${txt.color}: ${product.color}\n\n`;
+    
+    // For preorder items, show both USD and UAH with "ціна за штуку"
+    if (product.catalogType === 'preorder') {
+      const usdPrice = parseFloat(product.priceUsd?.toString() || '0');
+      message += `💰 *$${usdPrice.toFixed(2)} / ${price.toLocaleString('uk-UA')} грн* _(ціна за шт)_`;
+    } else {
+      message += `💰 *${price.toLocaleString('uk-UA')} грн* _(ціна за шт)_`;
+    }
   }
   
   // Show promo timer if end date is set
@@ -781,50 +797,23 @@ if (bot) {
       );
       registerMessage(session, msg.message_id);
     } else if (session.step === 'checkout_address') {
-      // Collect address and show summary
+      // Collect address and ask about packaging
       session.checkoutData = session.checkoutData || {};
       session.checkoutData.address = ctx.message.text;
-      session.step = 'awaiting_confirmation';
+      session.step = 'checkout_packaging';
       
       // Delete user's input message and clear old messages
       try { await ctx.deleteMessage(); } catch {}
       await clearOldMessages(ctx, session);
       
-      // Calculate cart total for summary
-      const products = await getCachedProducts();
-      let total = 0;
-      let itemsSummary = '';
-      
-      for (const item of session.cart) {
-        const product = products.find(p => p.id === item.productId);
-        if (product) {
-          const price = await calculatePriceAsync(product, session);
-          total += price * item.quantity;
-          itemsSummary += `• ${product.name} x${item.quantity}\n`;
-        }
-      }
-      
-      // Escape markdown special chars in user input
-      const escapeMd = (text: string) => text.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
-      
-      // Show order summary for confirmation
-      let summary = '📋 *ПІДТВЕРДЖЕННЯ ЗАМОВЛЕННЯ*\n';
-      summary += '━━━━━━━━━━━━━━━━━━\n\n';
-      summary += `👤 *Ім\'я:* ${escapeMd(session.checkoutData.name || '')}\n`;
-      summary += `📞 *Телефон:* ${escapeMd(session.checkoutData.phone || '')}\n`;
-      summary += `📍 *Адреса:* ${escapeMd(session.checkoutData.address || '')}\n\n`;
-      summary += `📦 *Товари:*\n${itemsSummary}\n`;
-      summary += `💵 *Сума:* ${total.toLocaleString('uk-UA')} грн\n`;
-      
-      const summaryMsg = await ctx.reply(summary, { 
-        parse_mode: 'Markdown', 
-        ...Markup.inlineKeyboard([
-          [Markup.button.callback('✅ Підтвердити', 'confirm_order')],
-          [Markup.button.callback('✏️ Змінити дані', 'checkout')],
+      const msg = await ctx.reply(
+        '🎀 *Чи потрібна вам упаковка?*',
+        { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+          [Markup.button.callback('✅ Так', 'packaging_yes'), Markup.button.callback('❌ Ні', 'packaging_no')],
           [Markup.button.callback('❌ Скасувати', 'cart')]
-        ])
-      });
-      registerMessage(session, summaryMsg.message_id);
+        ])}
+      );
+      registerMessage(session, msg.message_id);
     } else if ((session as any).awaitingSearch || session.step === 'menu') {
       // Search functionality
       const searchTerm = ctx.message.text.toLowerCase();
@@ -1181,10 +1170,9 @@ if (bot) {
     
     const heights = Array.from(heightPrices.keys()).sort((a, b) => a - b);
     
+    // Show only heights without prices in filter
     const buttons = heights.map(h => {
-      const priceUsd = heightPrices.get(h) || 0;
-      const priceLabel = priceUsd > 0 ? ` - $${priceUsd.toFixed(2)}` : '';
-      return [Markup.button.callback(`${h} см${priceLabel}`, `set_height_${h}`)];
+      return [Markup.button.callback(`${h} см`, `set_height_${h}`)];
     });
     buttons.push([Markup.button.callback('◀️ Назад', 'back_to_filters')]);
     
@@ -1548,6 +1536,58 @@ if (bot) {
       ])}
     );
     registerMessage(session, msg.message_id);
+  });
+  
+  // Packaging question handlers
+  bot.action(/^packaging_(yes|no)$/, async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const answer = ctx.match[1];
+    await ctx.answerCbQuery();
+    
+    session.checkoutData = session.checkoutData || {};
+    session.checkoutData.needsPackaging = answer === 'yes';
+    session.step = 'awaiting_confirmation';
+    
+    // Delete current message and clear old messages
+    try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
+    
+    // Calculate cart total for summary
+    const products = await getCachedProducts();
+    let total = 0;
+    let itemsSummary = '';
+    
+    for (const item of session.cart) {
+      const product = products.find(p => p.id === item.productId);
+      if (product) {
+        const price = await calculatePriceAsync(product, session);
+        total += price * item.quantity;
+        itemsSummary += `• ${product.name} x${item.quantity}\n`;
+      }
+    }
+    
+    // Escape markdown special chars in user input
+    const escapeMd = (text: string) => text.replace(/[_*[\]()~`>#+=|{}.!-]/g, '\\$&');
+    
+    // Show order summary for confirmation
+    let summary = '📋 *ПІДТВЕРДЖЕННЯ ЗАМОВЛЕННЯ*\n';
+    summary += '━━━━━━━━━━━━━━━━━━\n\n';
+    summary += `👤 *Ім'я:* ${escapeMd(session.checkoutData.name || '')}\n`;
+    summary += `📞 *Телефон:* ${escapeMd(session.checkoutData.phone || '')}\n`;
+    summary += `📍 *Адреса:* ${escapeMd(session.checkoutData.address || '')}\n`;
+    summary += `🎀 *Упаковка:* ${session.checkoutData.needsPackaging ? 'Так' : 'Ні'}\n\n`;
+    summary += `📦 *Товари:*\n${itemsSummary}\n`;
+    summary += `💵 *Сума:* ${total.toLocaleString('uk-UA')} грн\n`;
+    
+    const summaryMsg = await ctx.reply(summary, { 
+      parse_mode: 'Markdown', 
+      ...Markup.inlineKeyboard([
+        [Markup.button.callback('✅ Підтвердити', 'confirm_order')],
+        [Markup.button.callback('✏️ Змінити дані', 'checkout')],
+        [Markup.button.callback('❌ Скасувати', 'cart')]
+      ])
+    });
+    registerMessage(session, summaryMsg.message_id);
   });
   
   // Finalize checkout (after collecting contact details)
