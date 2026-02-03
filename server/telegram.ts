@@ -590,7 +590,14 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   message += `├ ${txt.class}: ${product.flowerClass}\n`;
   message += `├ ${txt.height}: ${product.height} см\n`;
   message += `└ ${txt.color}: ${product.color}\n\n`;
-  message += `💰 *${price.toLocaleString('uk-UA')} грн*`;
+  
+  // For preorder items, show both USD and UAH
+  if (product.catalogType === 'preorder') {
+    const usdPrice = parseFloat(product.priceUsd?.toString() || '0');
+    message += `💰 *$${usdPrice.toFixed(2)} / ${price.toLocaleString('uk-UA')} грн*`;
+  } else {
+    message += `💰 *${price.toLocaleString('uk-UA')} грн*`;
+  }
   
   // Show promo timer if end date is set
   if (isPromoActive && promoEndDate) {
@@ -745,29 +752,43 @@ if (bot) {
       session.checkoutData.name = ctx.message.text;
       session.step = 'checkout_phone';
       
-      await ctx.reply(
+      // Delete user's input message and clear old messages
+      try { await ctx.deleteMessage(); } catch {}
+      await clearOldMessages(ctx, session);
+      
+      const msg = await ctx.reply(
         '📞 Введіть ваш *номер телефону*:',
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
           [Markup.button.callback('❌ Скасувати', 'cart')]
         ])}
       );
+      registerMessage(session, msg.message_id);
     } else if (session.step === 'checkout_phone') {
       // Collect phone
       session.checkoutData = session.checkoutData || {};
       session.checkoutData.phone = ctx.message.text;
       session.step = 'checkout_address';
       
-      await ctx.reply(
+      // Delete user's input message and clear old messages
+      try { await ctx.deleteMessage(); } catch {}
+      await clearOldMessages(ctx, session);
+      
+      const msg = await ctx.reply(
         '📍 Введіть *адресу доставки*:',
         { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
           [Markup.button.callback('❌ Скасувати', 'cart')]
         ])}
       );
+      registerMessage(session, msg.message_id);
     } else if (session.step === 'checkout_address') {
       // Collect address and show summary
       session.checkoutData = session.checkoutData || {};
       session.checkoutData.address = ctx.message.text;
       session.step = 'awaiting_confirmation';
+      
+      // Delete user's input message and clear old messages
+      try { await ctx.deleteMessage(); } catch {}
+      await clearOldMessages(ctx, session);
       
       // Calculate cart total for summary
       const products = await getCachedProducts();
@@ -795,7 +816,7 @@ if (bot) {
       summary += `📦 *Товари:*\n${itemsSummary}\n`;
       summary += `💵 *Сума:* ${total.toLocaleString('uk-UA')} грн\n`;
       
-      await ctx.reply(summary, { 
+      const summaryMsg = await ctx.reply(summary, { 
         parse_mode: 'Markdown', 
         ...Markup.inlineKeyboard([
           [Markup.button.callback('✅ Підтвердити', 'confirm_order')],
@@ -803,6 +824,7 @@ if (bot) {
           [Markup.button.callback('❌ Скасувати', 'cart')]
         ])
       });
+      registerMessage(session, summaryMsg.message_id);
     } else if ((session as any).awaitingSearch || session.step === 'menu') {
       // Search functionality
       const searchTerm = ctx.message.text.toLowerCase();
@@ -1406,7 +1428,10 @@ if (bot) {
       return;
     }
     
+    // Clear old messages before sending product cards
     try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
+    
     const products = await getCachedProducts();
     for (const productId of session.favorites) {
       const product = products.find(p => p.id === productId);
@@ -1436,6 +1461,10 @@ if (bot) {
       );
       return;
     }
+    
+    // Clear old messages before showing cart
+    try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
     
     // Check for discount
     const customers = await storage.getCustomers();
@@ -1486,7 +1515,8 @@ if (bot) {
     buttons.push([Markup.button.callback('🗑️ Очистити', 'clear_cart'), Markup.button.callback('🌹 Додати ще', 'catalog')]);
     buttons.push([Markup.button.callback('◀️ Меню', 'menu')]);
     
-    await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
+    const cartMsg = await ctx.reply(message, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) });
+    registerMessage(session, cartMsg.message_id);
   });
 
   // Clear cart
@@ -1503,16 +1533,21 @@ if (bot) {
     const txt = getText(session);
     await ctx.answerCbQuery();
     
+    // Clear old messages before starting checkout
+    try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
+    
     // Start collecting contact details
     session.step = 'checkout_name';
     session.checkoutData = {};
     
-    await ctx.reply(
+    const msg = await ctx.reply(
       '📝 *ОФОРМЛЕННЯ ЗАМОВЛЕННЯ*\n━━━━━━━━━━━━━━━━━━\n\nВведіть ваше *ім\'я та прізвище*:',
       { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
         [Markup.button.callback('❌ Скасувати', 'cart')]
       ])}
     );
+    registerMessage(session, msg.message_id);
   });
   
   // Finalize checkout (after collecting contact details)
@@ -1689,7 +1724,10 @@ if (bot) {
       return;
     }
     
+    // Clear old messages before sending product cards
     try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
+    
     for (const product of promos.slice(0, 5)) {
       await sendProductCard(ctx, product, session, true);
     }
@@ -1777,15 +1815,20 @@ if (bot) {
       console.error('Callback answer error:', e);
     }
     
+    // Clear old messages before sending new ones
+    try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
+    
     const buttons = Markup.inlineKeyboard([
       [Markup.button.callback('🏠 Головне меню', 'menu')]
     ]);
 
-    await ctx.reply(txt.managerContact, { 
+    const msg = await ctx.reply(txt.managerContact, { 
       parse_mode: 'Markdown',
       link_preview_options: { is_disabled: true },
       reply_markup: buttons.reply_markup
     });
+    registerMessage(session, msg.message_id);
   });
 
   // About
