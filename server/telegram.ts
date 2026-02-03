@@ -40,6 +40,7 @@ interface UserSession {
     needsPackaging?: boolean;
   };
   messagesToDelete: number[];
+  selectedHeights?: { [productId: string]: string };
 }
 
 const sessions: Map<string, UserSession> = new Map();
@@ -613,7 +614,7 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
       const rateSetting = await storage.getSetting('usd_to_uah_rate');
       const rate = parseFloat(rateSetting?.value || '41.5');
       const parts = heightPricesStr.split(',').map((p: string) => p.trim());
-      message += `💰 *Ціни за висотами:*\n`;
+      message += `💰 *Оберіть висоту:*\n`;
       for (const part of parts) {
         const [h, p] = part.split(':');
         if (h && p) {
@@ -623,11 +624,8 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
         }
       }
       message += `_(ціна за шт)_`;
-    } else if (product.catalogType === 'preorder') {
-      // For preorder items, show both USD and UAH with "ціна за штуку"
-      const usdPrice = parseFloat(product.priceUsd?.toString() || '0');
-      message += `💰 *$${usdPrice.toFixed(2)} / ${price.toLocaleString('uk-UA')} грн* _(ціна за шт)_`;
     } else {
+      // Only show UAH price
       message += `💰 *${price.toLocaleString('uk-UA')} грн* _(ціна за шт)_`;
     }
   }
@@ -646,29 +644,59 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     message += `\n🏷️ _Ваша знижка: -5%_`;
   }
   
-  // Different quantity buttons for packaging vs flowers
-  const qtyButtons = isPackaging 
-    ? [
-        Markup.button.callback('+1 шт', `c_1_${shortId}`),
-        Markup.button.callback('+5 шт', `c_5_${shortId}`),
-        Markup.button.callback('+25 шт', `c_25_${shortId}`)
-      ]
-    : [
-        Markup.button.callback('+25 шт', `c_25_${shortId}`),
-        Markup.button.callback('+50 шт', `c_50_${shortId}`),
-        Markup.button.callback('+100 шт', `c_100_${shortId}`)
-      ];
+  // Check if multi-height pricing - show height selection buttons
+  const heightPricesStr = (product as any).heightPrices;
+  const hasMultiHeight = heightPricesStr && product.catalogType === 'preorder';
   
-  const buttons = Markup.inlineKeyboard([
-    qtyButtons,
-    [
-      Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
-      Markup.button.callback('🧺 Кошик', 'cart')
-    ],
-    [
-      Markup.button.callback('🏠 Меню', 'menu')
-    ]
+  let buttonRows: any[] = [];
+  
+  if (hasMultiHeight) {
+    // Parse heights and create selection buttons
+    const rateSetting = await storage.getSetting('usd_to_uah_rate');
+    const rate = parseFloat(rateSetting?.value || '41.5');
+    const parts = heightPricesStr.split(',').map((p: string) => p.trim());
+    const heightButtons: any[] = [];
+    
+    for (const part of parts) {
+      const [h, p] = part.split(':');
+      if (h && p) {
+        const height = h.trim();
+        const usdPrice = parseFloat(p.trim());
+        const uahPrice = Math.round(usdPrice * rate);
+        heightButtons.push(
+          Markup.button.callback(`${height} см - ${uahPrice} грн`, `h_${height}_${shortId}`)
+        );
+      }
+    }
+    
+    // Split height buttons into rows of 2
+    for (let i = 0; i < heightButtons.length; i += 2) {
+      buttonRows.push(heightButtons.slice(i, i + 2));
+    }
+  } else {
+    // Regular quantity buttons
+    const qtyButtons = isPackaging 
+      ? [
+          Markup.button.callback('+1 шт', `c_1_${shortId}`),
+          Markup.button.callback('+5 шт', `c_5_${shortId}`),
+          Markup.button.callback('+25 шт', `c_25_${shortId}`)
+        ]
+      : [
+          Markup.button.callback('+25 шт', `c_25_${shortId}`),
+          Markup.button.callback('+50 шт', `c_50_${shortId}`),
+          Markup.button.callback('+100 шт', `c_100_${shortId}`)
+        ];
+    buttonRows.push(qtyButtons);
+  }
+  
+  // Add favorites and cart buttons
+  buttonRows.push([
+    Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
+    Markup.button.callback('🧺 Кошик', 'cart')
   ]);
+  buttonRows.push([Markup.button.callback('🏠 Меню', 'menu')]);
+  
+  const buttons = Markup.inlineKeyboard(buttonRows);
   
   // Send photo if available
   if (product.images && product.images.length > 0) {
@@ -1361,6 +1389,97 @@ if (bot) {
     }
   });
 
+  // Height selection for multi-height products (h_<height>_<shortId>)
+  bot.action(/^h_(\d+)_(.+)$/, async (ctx) => {
+    const selectedHeight = ctx.match[1];
+    const shortId = ctx.match[2];
+    const session = getSession(ctx.from!.id.toString());
+    
+    // Find product
+    const products = await getCachedProducts();
+    const product = products.find(p => p.id.startsWith(shortId));
+    
+    if (!product) {
+      await ctx.answerCbQuery('Товар не знайдено');
+      return;
+    }
+    
+    // Store selected height in session for this product
+    if (!session.selectedHeights) {
+      (session as any).selectedHeights = {};
+    }
+    (session as any).selectedHeights[product.id] = selectedHeight;
+    
+    // Get price for this height
+    const heightPricesStr = (product as any).heightPrices;
+    const rateSetting = await storage.getSetting('usd_to_uah_rate');
+    const rate = parseFloat(rateSetting?.value || '41.5');
+    
+    let heightPrice = 0;
+    const parts = heightPricesStr.split(',').map((p: string) => p.trim());
+    for (const part of parts) {
+      const [h, p] = part.split(':');
+      if (h && h.trim() === selectedHeight && p) {
+        heightPrice = Math.round(parseFloat(p.trim()) * rate);
+        break;
+      }
+    }
+    
+    await ctx.answerCbQuery(`Обрано ${selectedHeight} см - ${heightPrice} грн`);
+    
+    // Update message with quantity buttons for this height
+    const qtyButtons = [
+      Markup.button.callback('+25 шт', `ch_25_${selectedHeight}_${shortId}`),
+      Markup.button.callback('+50 шт', `ch_50_${selectedHeight}_${shortId}`),
+      Markup.button.callback('+100 шт', `ch_100_${selectedHeight}_${shortId}`)
+    ];
+    
+    const buttons = Markup.inlineKeyboard([
+      [Markup.button.callback(`📏 Висота: ${selectedHeight} см - ${heightPrice} грн/шт`, `p_${shortId}`)],
+      qtyButtons,
+      [
+        Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
+        Markup.button.callback('🧺 Кошик', 'cart')
+      ],
+      [Markup.button.callback('🏠 Меню', 'menu')]
+    ]);
+    
+    try {
+      await ctx.editMessageReplyMarkup(buttons.reply_markup);
+    } catch (e) {
+      // Ignore if message couldn't be edited
+    }
+  });
+
+  // Add to cart with specific height (ch_<qty>_<height>_<shortId>)
+  bot.action(/^ch_(\d+)_(\d+)_(.+)$/, async (ctx) => {
+    const quantity = parseInt(ctx.match[1]);
+    const height = ctx.match[2];
+    const shortId = ctx.match[3];
+    const session = getSession(ctx.from!.id.toString());
+    
+    // Find product
+    const products = await getCachedProducts();
+    const product = products.find(p => p.id.startsWith(shortId));
+    
+    if (!product) {
+      await ctx.answerCbQuery('Товар не знайдено');
+      return;
+    }
+    
+    // Create cart item key with height
+    const cartKey = `${product.id}_h${height}`;
+    const existing = session.cart.find(c => c.productId === cartKey);
+    if (existing) {
+      existing.quantity += quantity;
+    } else {
+      session.cart.push({ productId: cartKey, quantity });
+    }
+    
+    const totalInCart = session.cart.reduce((sum, item) => sum + item.quantity, 0);
+    await ctx.answerCbQuery(`✅ Додано ${quantity} шт (${height} см). Всього: ${totalInCart} у кошику`);
+  });
+
   // Product actions - Add to cart (short format: c_<qty>_<shortId>)
   bot.action(/^c_(\d+)_(.+)$/, async (ctx) => {
     const quantity = parseInt(ctx.match[1]);
@@ -1515,14 +1634,52 @@ if (bot) {
     
     let itemNum = 1;
     for (const item of session.cart) {
-      const product = products.find(p => p.id === item.productId);
+      // Check if item has height suffix (format: productId_h60)
+      let productId = item.productId;
+      let heightSuffix = '';
+      if (item.productId.includes('_h')) {
+        const parts = item.productId.split('_h');
+        productId = parts[0];
+        heightSuffix = parts[1];
+      }
+      
+      const product = products.find(p => p.id === productId);
       if (product) {
-        const price = await calculatePriceAsync(product, session);
+        let price: number;
+        
+        // If height suffix exists, calculate price from heightPrices
+        if (heightSuffix && (product as any).heightPrices) {
+          const rateSetting = await storage.getSetting('usd_to_uah_rate');
+          const rate = parseFloat(rateSetting?.value || '41.5');
+          const heightPricesStr = (product as any).heightPrices;
+          const priceParts = heightPricesStr.split(',').map((p: string) => p.trim());
+          price = 0;
+          for (const part of priceParts) {
+            const [h, p] = part.split(':');
+            if (h && h.trim() === heightSuffix && p) {
+              price = Math.round(parseFloat(p.trim()) * rate);
+              break;
+            }
+          }
+          // Apply wholesale discount if applicable
+          if (session.customerType === 'wholesale') {
+            price = Math.round(price * 0.95);
+          }
+        } else {
+          price = await calculatePriceAsync(product, session);
+        }
+        
         const itemTotal = price * item.quantity;
         total += itemTotal;
         
-        message += `*${itemNum}. ${product.name}*\n`;
-        message += `   _${product.variety}_\n`;
+        message += `*${itemNum}. ${product.name}*`;
+        if (heightSuffix) {
+          message += ` _(${heightSuffix} см)_`;
+        }
+        message += `\n`;
+        if (product.variety && !heightSuffix) {
+          message += `   _${product.variety}_\n`;
+        }
         message += `   📦 ${item.quantity} шт × ${price.toLocaleString('uk-UA')} грн\n`;
         message += `   💰 = *${itemTotal.toLocaleString('uk-UA')} грн*\n\n`;
         itemNum++;
@@ -1601,11 +1758,43 @@ if (bot) {
     let itemsSummary = '';
     
     for (const item of session.cart) {
-      const product = products.find(p => p.id === item.productId);
+      // Check if item has height suffix (format: productId_h60)
+      let productId = item.productId;
+      let heightSuffix = '';
+      if (item.productId.includes('_h')) {
+        const parts = item.productId.split('_h');
+        productId = parts[0];
+        heightSuffix = parts[1];
+      }
+      
+      const product = products.find(p => p.id === productId);
       if (product) {
-        const price = await calculatePriceAsync(product, session);
+        let price: number;
+        
+        // If height suffix exists, calculate price from heightPrices
+        if (heightSuffix && (product as any).heightPrices) {
+          const rateSetting = await storage.getSetting('usd_to_uah_rate');
+          const rate = parseFloat(rateSetting?.value || '41.5');
+          const heightPricesStr = (product as any).heightPrices;
+          const priceParts = heightPricesStr.split(',').map((p: string) => p.trim());
+          price = 0;
+          for (const part of priceParts) {
+            const [h, p] = part.split(':');
+            if (h && h.trim() === heightSuffix && p) {
+              price = Math.round(parseFloat(p.trim()) * rate);
+              break;
+            }
+          }
+          if (session.customerType === 'wholesale') {
+            price = Math.round(price * 0.95);
+          }
+        } else {
+          price = await calculatePriceAsync(product, session);
+        }
+        
         total += price * item.quantity;
-        itemsSummary += `• ${product.name} x${item.quantity}\n`;
+        const heightInfo = heightSuffix ? ` (${heightSuffix} см)` : '';
+        itemsSummary += `• ${product.name}${heightInfo} x${item.quantity}\n`;
       }
     }
     
@@ -1745,15 +1934,47 @@ if (bot) {
     // Create order in storage
     const products = await getCachedProducts();
     let total = 0;
-    const items: { product: Product; quantity: number; price: number; total: number }[] = [];
+    const items: { product: Product; quantity: number; price: number; total: number; heightSuffix?: string }[] = [];
     
     for (const item of session.cart) {
-      const product = products.find(p => p.id === item.productId);
+      // Check if item has height suffix (format: productId_h60)
+      let productId = item.productId;
+      let heightSuffix = '';
+      if (item.productId.includes('_h')) {
+        const parts = item.productId.split('_h');
+        productId = parts[0];
+        heightSuffix = parts[1];
+      }
+      
+      const product = products.find(p => p.id === productId);
       if (product) {
-        const price = await calculatePriceAsync(product, session);
+        let price: number;
+        
+        // If height suffix exists, calculate price from heightPrices
+        if (heightSuffix && (product as any).heightPrices) {
+          const rateSetting = await storage.getSetting('usd_to_uah_rate');
+          const rate = parseFloat(rateSetting?.value || '41.5');
+          const heightPricesStr = (product as any).heightPrices;
+          const priceParts = heightPricesStr.split(',').map((p: string) => p.trim());
+          price = 0;
+          for (const part of priceParts) {
+            const [h, p] = part.split(':');
+            if (h && h.trim() === heightSuffix && p) {
+              price = Math.round(parseFloat(p.trim()) * rate);
+              break;
+            }
+          }
+          // Apply wholesale discount if applicable
+          if (session.customerType === 'wholesale') {
+            price = Math.round(price * 0.95);
+          }
+        } else {
+          price = await calculatePriceAsync(product, session);
+        }
+        
         const itemTotal = price * item.quantity;
         total += itemTotal;
-        items.push({ product, quantity: item.quantity, price, total: itemTotal });
+        items.push({ product, quantity: item.quantity, price, total: itemTotal, heightSuffix: heightSuffix || undefined });
       }
     }
     
@@ -1797,7 +2018,10 @@ if (bot) {
     const orderNumber = `FL-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
     // Build order items description
-    let itemsDescription = items.map(i => `${i.product.name} x${i.quantity}`).join(', ');
+    let itemsDescription = items.map(i => {
+      const heightInfo = i.heightSuffix ? ` (${i.heightSuffix} см)` : '';
+      return `${i.product.name}${heightInfo} x${i.quantity}`;
+    }).join(', ');
     if (itemsDescription.length > 200) {
       itemsDescription = itemsDescription.substring(0, 197) + '...';
     }
