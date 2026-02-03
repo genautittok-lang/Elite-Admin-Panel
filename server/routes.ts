@@ -270,7 +270,36 @@ export async function registerRoutes(
 
   app.post("/api/products", async (req, res) => {
     try {
-      const result = insertProductSchema.safeParse(req.body);
+      // Clean up data - handle empty string values before validation
+      const createData = { ...req.body };
+      if (createData.priceUsd === "" || createData.priceUsd === undefined) {
+        createData.priceUsd = null;
+      }
+      if (createData.priceUah === "" || createData.priceUah === "0.00") {
+        createData.priceUah = null;
+      }
+      if (createData.plantationId === "" || createData.plantationId === undefined) {
+        createData.plantationId = null;
+      }
+      if (createData.typeId === "" || createData.typeId === undefined) {
+        createData.typeId = null;
+      }
+      if (createData.countryId === "" || createData.countryId === undefined) {
+        createData.countryId = null;
+      }
+      // Handle date fields - convert strings to Date objects or null
+      if (createData.expectedDate && createData.expectedDate !== "") {
+        createData.expectedDate = new Date(createData.expectedDate);
+      } else {
+        createData.expectedDate = null;
+      }
+      if (createData.promoEndDate && createData.promoEndDate !== "") {
+        createData.promoEndDate = new Date(createData.promoEndDate);
+      } else {
+        createData.promoEndDate = null;
+      }
+      
+      const result = insertProductSchema.safeParse(createData);
       if (!result.success) {
         return res.status(400).json({ error: "Validation failed", details: result.error.flatten() });
       }
