@@ -40,7 +40,43 @@ async function initDatabase() {
     `);
 
     if (checkResult.rows[0].exists) {
-      console.log('📦 Tables already exist - skipping initialization');
+      console.log('📦 Tables already exist - running migrations...');
+      
+      // Run migrations to add missing columns and fix column types
+      const migrations = [
+        // Products table - fix height column type (should be TEXT, not INTEGER)
+        `ALTER TABLE products ALTER COLUMN height TYPE TEXT USING height::TEXT`,
+        // Products table - make type_id and country_id nullable (for packaging products)
+        `ALTER TABLE products ALTER COLUMN type_id DROP NOT NULL`,
+        `ALTER TABLE products ALTER COLUMN country_id DROP NOT NULL`,
+        // Products table - all new fields
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_promo BOOLEAN DEFAULT false`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_percent INTEGER DEFAULT 0`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_end_date TIMESTAMP`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS catalog_type TEXT DEFAULT 'preorder'`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT[]`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS videos TEXT[]`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS expected_date TIMESTAMP`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_size INTEGER DEFAULT 25`,
+        // Customers table - referral fields
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_bonus_awarded BOOLEAN DEFAULT false`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_code TEXT`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referred_by TEXT`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_balance NUMERIC(10,2) DEFAULT 0`,
+        `ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_count INTEGER DEFAULT 0`,
+        // Orders table - referral discount pending
+        `ALTER TABLE orders ADD COLUMN IF NOT EXISTS referral_discount_pending NUMERIC(10,2) DEFAULT 0`,
+      ];
+      
+      for (const migration of migrations) {
+        try {
+          await client.query(migration);
+        } catch (err) {
+          // Ignore errors (column might already exist)
+        }
+      }
+      
+      console.log('✅ Migrations applied successfully');
       console.log('');
       console.log('╔════════════════════════════════════════════════════════════╗');
       console.log('║              ✅ Database ready!                            ║');

@@ -1,0 +1,52 @@
+Starting Container
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+Setting up static file serving...
+Looking for build directory at: /app/dist/public
+╔════════════════════════════════════════════════════════════╗
+║           🌸 KVITKA opt Database Check 🌸                   ║
+╚════════════════════════════════════════════════════════════╝
+📡 Connecting to database...
+✅ Connected successfully!
+📦 Tables already exist - skipping initialization
+╔════════════════════════════════════════════════════════════╗
+║              ✅ Database ready!                            ║
+╚════════════════════════════════════════════════════════════╝
+npm warn config production Use `--omit=dev` instead.
+Build directory found!
+╔════════════════════════════════════════════════════════════╗
+║              🌸 KVITKA opt Server Started 🌸               ║
+╠════════════════════════════════════════════════════════════╣
+║  🌐 Port: 8080                                            ║
+║  🔧 Mode: production                                   ║
+║  ✅ Status: Ready                                          ║
+╚════════════════════════════════════════════════════════════╝
+6:17:16 PM [express] GET /api/dashboard/stats 500 in 173ms :: {"error":"Failed to get stats"}
+6:17:16 PM [express] GET /api/orders 500 in 200ms :: {"error":"Failed to get orders"}
+6:17:16 PM [express] GET /api/orders/recent 500 in 191ms :: {"error":"Failed to get recent orders"}
+6:17:16 PM [express] GET /api/analytics/top-customers 500 in 195ms :: {"error":"Failed to get top customers"}
+6:17:16 PM [express] GET /api/analytics/top-products 500 in 201ms :: {"error":"Failed to get top products"}
+6:17:19 PM [express] GET /api/customers 500 in 165ms :: {"error":"Failed to get customers"}
+6:17:20 PM [express] GET /api/orders 500 in 26ms :: {"error":"Failed to get orders"}
+6:17:21 PM [express] GET /api/analytics/sales-trend/month 200 in 3ms
+6:17:21 PM [express] GET /api/analytics/top-customers 500 in 162ms :: {"error":"Failed to get top customers"}
+6:17:21 PM [express] GET /api/dashboard/stats 500 in 171ms :: {"error":"Failed to get stats"}
+6:17:21 PM [express] GET /api/analytics/sales-by-country 500 in 164ms :: {"error":"Failed to get sales by country"}
+6:17:21 PM [express] GET /api/analytics/top-products 500 in 171ms :: {"error":"Failed to get top products"}
+6:17:22 PM [express] GET /api/products 500 in 26ms :: {"error":"Failed to get products"}
+6:17:22 PM [express] GET /api/plantations 304 in 32ms :: []
+6:17:22 PM [express] GET /api/countries 304 in 35ms :: [{"id":"91ea812b-3d9b-4970-89e2-dcd166d94ab0","code":"EC","name":"Еквадор","flag":"🇪🇨"},{"id":"0988706b-45a6-4716-8e99-c7b765219c6b","code":"CO","name":"Колумбія","flag":"🇨🇴"},{"id":"bfb891bb-9d5d-42e5-9ae9-d2929e2aa72e","code":"KE","name":"Кенія","flag":"🇰🇪"},{"id":"547cc9a9-05a0-474e-bbea-ff57bac67711","code":"NL","name":"Нідерланди","flag":"🇳🇱"},{"id":"3bc13b8c-9ba5-4b61-a8f4-843272aca042","code":"UA","name":"Україна","flag":"🇺🇦"}]
+6:17:22 PM [express] GET /api/flower-types 304 in 34ms :: [{"id":"47486f8d-63c4-4876-a0de-cffc896846f4","name":"Троянда","category":"single"},{"id":"569ae031-1128-4619-b098-bbc2929ab619","name":"Троянда кущова","category":"spray"},{"id":"952aae0c-a9e3-4fef-8058-54e8b2be4200","name":"Тюльпан","category":"single"},{"id":"f59a2d72-b974-41ce-84ca-396c57b9cb19","name":"Хризантема","category":"spray"},{"id":"147aed21-df90-4922-b256-334cd23e41d4","name":"Гербера","category":"single"},{"id":"60fc1994-23e5-4843-839d-33f1b7b6cf36","name":"Еустома","category":"single"},{"id":"a5c48ea5-05e5-4a06-9019-50461d876aaf","name":"Гвоздика","category":"single"},{"id":"d953d191-1f9f-4f55-bd36-f020ed703266","name":"Піон","category":"single"}]
+6:17:22 PM [express] GET /api/settings 304 in 33ms :: [{"id":"d8682e90-cbe1-44ce-8f8d-684176b9f59d","key":"usd_rate","value":"41.5","description":"Курс USD до UAH"},{"id":"7fecaaa4-341b-4661-9fee-9fa61ef73061","key":"min_order","value":"5000","description":"Мінімальна сума замовлення в грн"},{"id":"389e60d8-f945-496c-a43d-40acb60a17aa","key":"loyalty_threshold","value":"1000","description":"Сума покупки для 1 бала лояльності"},{"id":"69982fce-09e2-4022-beff-6a004c23b82f","key":"loyalty_gift_points","value":"100","description":"Кількість балів для подарунку"},{"id":"46a04c30-6253-4e60-90c4-c2ae3597ea44","key":"discount_orders_count","value":"10","description":"Кількість замовлень для знижки"},{"id":"2ad82af1-c306-483e-a544-9c18eefa4331","key":"discount_amount","value":"1000","description":"Сума знижки в грн"},{"id":"2dfb9f76-95fe-4251-9c71-5c670fe55262","key":"usd_to_uah_rate","value":"45","description":null},{"id":"1a3c7b13-4b83-4788-a499-0983ea71c9d3","key":"min_order_amount","value":"5000","description":null},{"id":"57beedb7-3d86-4724-ba3c-5a1fa8920df0","key":"wholesale_discount","value":"5","description":null},{"id":"2dbd82c2-7483-42b9-b3f0-c3b87abe17a2","key":"loyalty_points_rate","value":"1000","description":null},{"id":"f1138a74-05ac-4913-8249-b65ecd7d977e","key":"auto_exchange_rate","value":"true","description":null},{"id":"8e1dbf69-c0bd-4e49-bf6c-742944672de9","key":"notifications_enabled","value":"true","description":null}]
+6:17:23 PM [express] GET /api/products 500 in 3ms :: {"error":"Failed to get products"}
+6:17:24 PM [express] GET /api/products 500 in 3ms :: {"error":"Failed to get products"}
+6:17:50 PM [express] GET /api/orders 500 in 168ms :: {"error":"Failed to get orders"}
+6:18:13 PM [express] POST /api/upload 200 in 224ms :: {"url":"/uploads/product-1769537893666-20219348.jpg"}
+6:18:17 PM [express] POST /api/upload 200 in 159ms :: {"url":"/uploads/product-1769537897071-979468033.jpg"}
+6:18:19 PM [express] POST /api/upload 200 in 116ms :: {"url":"/uploads/product-1769537899643-883365526.jpg"}
+6:18:21 PM [express] GET /api/orders 500 in 174ms :: {"error":"Failed to get orders"}
+6:18:22 PM [express] POST /api/upload 200 in 101ms :: {"url":"/uploads/product-1769537902351-118910316.jpg"}
+6:18:24 PM [express] POST /api/products 400 in 4ms :: {"error":"Validation failed","details":{"formErrors":[],"fieldErrors":{"promoEndDate":["Expected date, received string"]}}}
+6:18:26 PM [express] POST /api/products 400 in 2ms :: {"error":"Validation failed","details":{"formErrors":[],"fieldErrors":{"promoEndDate":["Expected date, received string"]}}}
+6:18:26 PM [express] POST /api/products 400 in 1ms :: {"error":"Validation failed","details":{"formErrors":[],"fieldErrors":{"promoEndDate":["Expected date, received string"]}}}
+6:18:26 PM [express] POST /api/products 400 in 4ms :: {"error":"Validation failed","details":{"formErrors":[],"fieldErrors":{"promoEndDate":["Expected date, received string"]}}}

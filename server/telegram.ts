@@ -4,6 +4,19 @@ import type { Product, Customer, Country, FlowerType } from '@shared/schema';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Helper to check if URL is accessible (for Railway ephemeral storage)
+async function isUrlAccessible(url: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timeout);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
 if (!token) {
@@ -242,7 +255,14 @@ const t = {
     changeLanguage: '🌐 Змінити мову',
     changeCity: '📍 Змінити місто',
     changeType: '🏪 Змінити тип клієнта',
-    quantity: 'Кількість'
+    quantity: 'Кількість',
+    referral: '👥 Реферальна програма',
+    referralInfo: (code: string, balance: number, count: number, botUsername: string) => {
+      return `👥 *Реферальна програма*\n\n🔗 Ваше посилання:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Ваш баланс: ${balance} грн\n👥 Запрошено друзів: ${count}\n\n📌 *Як це працює:*\n• Поділіться посиланням з друзями\n• Коли друг зробить перше замовлення - ви отримаєте *200 грн* на баланс\n• Використовуйте баланс як знижку на наступне замовлення`;
+    },
+    referralBonus: '🎉 Вітаємо! Ви отримали 200 грн за запрошеного друга!',
+    referralWelcome: (inviterName: string) => `🎁 Вас запросив ${inviterName}! Приємних покупок!`,
+    menuButton: '🏠 Головне меню'
   },
   en: {
     welcome: (name: string) => `Welcome, ${name}! 🌸\n\nHere you can:\n✅ Browse assortment\n✅ Check personal prices\n✅ Place orders\n✅ Earn bonuses\n\nSelect a menu item:`,
@@ -309,7 +329,14 @@ const t = {
     changeLanguage: '🌐 Change Language',
     changeCity: '📍 Change City',
     changeType: '🏪 Change Type',
-    quantity: 'Quantity'
+    quantity: 'Quantity',
+    referral: '👥 Referral Program',
+    referralInfo: (code: string, balance: number, count: number, botUsername: string) => {
+      return `👥 *Referral Program*\n\n🔗 Your link:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Your balance: ${balance} UAH\n👥 Friends invited: ${count}\n\n📌 *How it works:*\n• Share your link with friends\n• When a friend makes first order - you get *200 UAH* to balance\n• Use balance as discount on next order`;
+    },
+    referralBonus: '🎉 Congrats! You received 200 UAH for inviting a friend!',
+    referralWelcome: (inviterName: string) => `🎁 You were invited by ${inviterName}! Enjoy shopping!`,
+    menuButton: '🏠 Main Menu'
   },
   ru: {
     welcome: (name: string) => `Приветствуем, ${name}! 🌸\n\nЗдесь вы можете:\n✅ Посмотреть ассортимент\n✅ Узнать персональные цены\n✅ Оформить заказ\n✅ Накопить бонусы\n\nВыберите пункт меню:`,
@@ -376,7 +403,14 @@ const t = {
     changeLanguage: '🌐 Сменить язык',
     changeCity: '📍 Сменить город',
     changeType: '🏪 Сменить тип клиента',
-    quantity: 'Количество'
+    quantity: 'Количество',
+    referral: '👥 Реферальная программа',
+    referralInfo: (code: string, balance: number, count: number, botUsername: string) => {
+      return `👥 *Реферальная программа*\n\n🔗 Ваша ссылка:\n\`https://t.me/${botUsername}?start=ref_${code}\`\n\n💰 Ваш баланс: ${balance} грн\n👥 Приглашено друзей: ${count}\n\n📌 *Как это работает:*\n• Поделитесь ссылкой с друзьями\n• Когда друг сделает первый заказ - вы получите *200 грн* на баланс\n• Используйте баланс как скидку на следующий заказ`;
+    },
+    referralBonus: '🎉 Поздравляем! Вы получили 200 грн за приглашенного друга!',
+    referralWelcome: (inviterName: string) => `🎁 Вас пригласил ${inviterName}! Приятных покупок!`,
+    menuButton: '🏠 Главное меню'
   }
 };
 
@@ -404,8 +438,8 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
     [Markup.button.callback(txt.search, 'search'), Markup.button.callback(txt.packaging, 'packaging')],
     [Markup.button.callback(txt.favorites, 'favorites'), Markup.button.callback(txt.cart, 'cart')],
     [Markup.button.callback(txt.history, 'history'), Markup.button.callback(txt.loyalty, 'loyalty')],
-    [Markup.button.callback(txt.manager, 'manager'), Markup.button.callback(txt.settings, 'settings')],
-    [Markup.button.callback(txt.about, 'about')]
+    [Markup.button.callback(txt.referral, 'referral'), Markup.button.callback(txt.manager, 'manager')],
+    [Markup.button.callback(txt.settings, 'settings'), Markup.button.callback(txt.about, 'about')]
   ]);
 
   // Delete current message first (the one with the button that was clicked)
@@ -648,8 +682,8 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   }
   
   // Check if multi-height pricing - show height selection buttons
-  const heightPricesStr = (product as any).heightPrices;
-  const hasMultiHeight = heightPricesStr && product.catalogType === 'preorder';
+  const heightPricesStr2 = (product as any).heightPrices;
+  const hasMultiHeight = heightPricesStr2 && product.catalogType === 'preorder';
   
   let buttonRows: any[] = [];
   
@@ -657,7 +691,7 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     // Parse heights and create selection buttons
     const rateSetting = await storage.getSetting('usd_to_uah_rate');
     const rate = parseFloat(rateSetting?.value || '41.5');
-    const parts = heightPricesStr.split(',').map((p: string) => p.trim());
+    const parts = heightPricesStr2.split(',').map((p: string) => p.trim());
     const heightButtons: any[] = [];
     
     for (const part of parts) {
@@ -701,46 +735,95 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   
   const buttons = Markup.inlineKeyboard(buttonRows);
   
-  // Send photo if available
+  // Send photos as media group if multiple, or single photo
   if (product.images && product.images.length > 0) {
-    const imagePath = product.images[0];
     try {
-      // Get base URL for production (Railway provides RAILWAY_PUBLIC_DOMAIN)
       const baseUrl = process.env.BASE_URL || 
                       (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null);
       
-      // For /uploads/ path in production, use public URL
-      if (imagePath.startsWith('/uploads/') && baseUrl) {
-        const imageUrl = `${baseUrl}${imagePath}`;
-        const msg = await ctx.replyWithPhoto(imageUrl, {
-          caption: message,
-          parse_mode: 'Markdown',
-          reply_markup: buttons.reply_markup
-        });
-        registerMessage(session, msg.message_id);
-        return;
-      }
+      // Helper to get image source
+      const getImageSource = (imagePath: string) => {
+        if (imagePath.startsWith('/uploads/') && baseUrl) {
+          return `${baseUrl}${imagePath}`;
+        }
+        if (imagePath.startsWith('/uploads/')) {
+          const relativePath = imagePath.slice(1);
+          const fullPath = path.resolve(process.cwd(), relativePath);
+          if (fs.existsSync(fullPath)) {
+            return { source: fullPath };
+          }
+        }
+        if (imagePath.startsWith('attached_assets/') || imagePath.startsWith('./')) {
+          const fullPath = path.resolve(process.cwd(), imagePath);
+          if (fs.existsSync(fullPath)) {
+            return { source: fullPath };
+          }
+        }
+        return imagePath; // URL
+      };
       
-      // Check if it's a local file path (attached_assets, uploads in dev)
-      if (imagePath.startsWith('attached_assets/') || imagePath.startsWith('./') || imagePath.startsWith('/uploads/')) {
-        // For /uploads/ path, strip the leading slash
-        const relativePath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
-        const fullPath = path.resolve(process.cwd(), relativePath);
-        if (fs.existsSync(fullPath)) {
-          const msg = await ctx.replyWithPhoto(
-            { source: fullPath },
-            { caption: message, parse_mode: 'Markdown', reply_markup: buttons.reply_markup }
-          );
-          registerMessage(session, msg.message_id);
-          return;
+      // Filter valid images - check availability for Railway
+      const validImages: string[] = [];
+      for (const img of product.images) {
+        if (img.startsWith('/uploads/')) {
+          const relativePath = img.slice(1);
+          const fullPath = path.resolve(process.cwd(), relativePath);
+          if (fs.existsSync(fullPath)) {
+            validImages.push(img);
+          } else if (baseUrl) {
+            // On Railway - check if URL is accessible
+            const url = `${baseUrl}${img}`;
+            if (await isUrlAccessible(url)) {
+              validImages.push(img);
+            }
+          }
+        } else {
+          // External URL - assume OK
+          validImages.push(img);
         }
       }
-      // Try as URL
-      const msg = await ctx.replyWithPhoto(imagePath, {
-        caption: message,
-        parse_mode: 'Markdown',
-        reply_markup: buttons.reply_markup
-      });
+      
+      // If multiple images - send as media group
+      if (validImages.length > 1) {
+        const mediaGroup = validImages.slice(0, 10).map((img, idx) => ({
+          type: 'photo' as const,
+          media: getImageSource(img) as any,
+          caption: idx === 0 ? message : undefined,
+          parse_mode: idx === 0 ? 'Markdown' as const : undefined
+        }));
+        
+        try {
+          const msgs = await ctx.replyWithMediaGroup(mediaGroup);
+          msgs.forEach(m => registerMessage(session, m.message_id));
+          
+          // Send buttons separately after media group
+          const btnMsg = await ctx.reply('Оберіть дію:', buttons);
+          registerMessage(session, btnMsg.message_id);
+          return;
+        } catch (mediaErr) {
+          // If media group fails, try single image or text
+          console.error('Media group failed, trying single image:', mediaErr);
+        }
+      }
+      
+      // Single image (or fallback from failed media group)
+      if (validImages.length >= 1) {
+        const imageSource = getImageSource(validImages[0]);
+        try {
+          const msg = await ctx.replyWithPhoto(imageSource as any, {
+            caption: message,
+            parse_mode: 'Markdown',
+            reply_markup: buttons.reply_markup
+          });
+          registerMessage(session, msg.message_id);
+          return;
+        } catch (photoErr) {
+          console.error('Single photo failed, sending text only:', photoErr);
+        }
+      }
+      
+      // Fallback to text only
+      const msg = await ctx.reply(message, { parse_mode: 'Markdown', ...buttons });
       registerMessage(session, msg.message_id);
       return;
     } catch (err) {
@@ -755,38 +838,82 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
 }
 
 if (bot) {
-  // Start command - check if user exists, skip onboarding if yes
+  // Start command - go directly to menu without onboarding
   bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
+    const telegramUsername = ctx.from?.username || '';
     const session = getSession(telegramId);
     
-    // Check if customer already exists in database
-    const customers = await storage.getCustomers();
-    const existingCustomer = customers.find(c => c.telegramId === telegramId);
+    // Check for referral code in start payload
+    const startPayload = (ctx.message as any)?.text?.split(' ')[1] || '';
+    const referralCode = startPayload.startsWith('ref_') ? startPayload.substring(4) : null;
     
-    if (existingCustomer) {
-      // Restore session from customer data
-      session.language = (existingCustomer.language as 'ua' | 'en' | 'ru') || 'ua';
-      session.city = existingCustomer.city || '';
-      session.customerType = (existingCustomer.customerType as 'flower_shop' | 'wholesale') || 'flower_shop';
+    // Detect language from Telegram locale (default to 'ua')
+    const telegramLang = ctx.from?.language_code;
+    let detectedLang: 'ua' | 'en' | 'ru' = 'ua';
+    if (telegramLang === 'en') detectedLang = 'en';
+    else if (telegramLang === 'ru') detectedLang = 'ru';
+    else if (telegramLang === 'uk') detectedLang = 'ua';
+    
+    try {
+      // Check if customer already exists in database
+      const customers = await storage.getCustomers();
+      let existingCustomer = customers.find(c => c.telegramId === telegramId);
+      let referrerName: string | null = null;
+      
+      if (existingCustomer) {
+        // Restore session from customer data
+        session.language = (existingCustomer.language as 'ua' | 'en' | 'ru') || 'ua';
+        session.city = existingCustomer.city || '';
+        session.customerType = (existingCustomer.customerType as 'flower_shop' | 'wholesale') || 'flower_shop';
+      } else {
+        // New user - check if they came from a referral link
+        let referredById: string | undefined;
+        if (referralCode) {
+          const referrer = await storage.getCustomerByReferralCode(referralCode);
+          if (referrer && referrer.telegramId !== telegramId) {
+            referredById = referrer.id;
+            referrerName = referrer.name;
+          }
+        }
+        
+        // New user - create customer with detected language (no onboarding)
+        session.language = detectedLang;
+        session.customerType = 'flower_shop';
+        session.city = '';
+        
+        existingCustomer = await storage.createCustomer({
+          telegramId,
+          telegramUsername,
+          name: ctx.from?.first_name || 'Telegram User',
+          phone: '',
+          shopName: '',
+          city: '',
+          customerType: 'flower_shop',
+          language: detectedLang,
+          isBlocked: false,
+          referredBy: referredById
+        });
+      }
+      
       session.step = 'menu';
       
-      // Go directly to main menu
+      // Show referral welcome message if applicable
+      const txt = getText(session);
+      if (referrerName) {
+        await ctx.reply(txt.referralWelcome(referrerName));
+      }
+      
+      // Go directly to main menu with welcome message
       await showMainMenu(ctx, session);
-      return;
+    } catch (error) {
+      console.error('Error in /start:', error);
+      // Show menu anyway with defaults
+      session.language = detectedLang;
+      session.customerType = 'flower_shop';
+      session.step = 'menu';
+      await showMainMenu(ctx, session);
     }
-    
-    // New user - start onboarding
-    session.step = 'language';
-    
-    await ctx.reply(
-      t.ua.selectLanguage,
-      Markup.inlineKeyboard([
-        [Markup.button.callback('🇺🇦 Українська', 'lang_ua')],
-        [Markup.button.callback('🇬🇧 English', 'lang_en')],
-        [Markup.button.callback('🇷🇺 Русский', 'lang_ru')]
-      ])
-    );
   });
 
   // Language selection
@@ -874,19 +1001,28 @@ if (bot) {
     } else if ((session as any).awaitingSearch || session.step === 'search') {
       // Search functionality
       const searchTerm = ctx.message.text.toLowerCase();
-      
-      // Delete user's search message
-      try { await ctx.deleteMessage(); } catch {}
-      
       const products = await getCachedProducts();
-      const found = products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm) || 
-        p.variety.toLowerCase().includes(searchTerm)
-      );
+      
+      // Search for products by name and variety
+      const found = products.filter(p => {
+        // Exclude packaging from search
+        const isPackaging = (p as any).flowerType?.category === 'packaging' ||
+          p.name.toLowerCase().includes('упакування') ||
+          p.name.toLowerCase().includes('плівка') ||
+          p.name.toLowerCase().includes('папір');
+        if (isPackaging) return false;
+        
+        const name = (p.name || '').toLowerCase();
+        const variety = (p.variety || '').toLowerCase();
+        return name.includes(searchTerm) || variety.includes(searchTerm);
+      });
       
       // Clear search flag and reset step
       (session as any).awaitingSearch = false;
       session.step = 'menu';
+      
+      // Delete user's text message
+      try { await ctx.deleteMessage(); } catch {}
       
       if (found.length === 0) {
         await ctx.reply(
@@ -897,12 +1033,15 @@ if (bot) {
           ])
         );
       } else {
-        for (const product of found.slice(0, 5)) {
+        for (const product of found.slice(0, 10)) {
           await sendProductCard(ctx, product, session);
         }
-        if (found.length > 5) {
-          await ctx.reply(`Знайдено ще ${found.length - 5} товарів. Уточніть пошук.`);
-        }
+        
+        const summaryMsg = await ctx.reply(`📊 Знайдено товарів: ${found.length}`, Markup.inlineKeyboard([
+          [Markup.button.callback('🔍 Шукати ще', 'search')],
+          [Markup.button.callback('🏠 Меню', 'menu')]
+        ]));
+        session.messagesToDelete.push(summaryMsg.message_id);
       }
     }
   });
@@ -1607,8 +1746,11 @@ if (bot) {
     const telegramId = ctx.from!.id.toString();
     await ctx.answerCbQuery();
     
+    // Clear all previous messages for clean cart view
+    await clearOldMessages(ctx, session);
+    
     if (session.cart.length === 0) {
-      await ctx.editMessageText(
+      const msg = await ctx.reply(
         '🧺 *Ваш кошик порожній*\n\nДодайте товари з каталогу!',
         { 
           parse_mode: 'Markdown',
@@ -1618,6 +1760,7 @@ if (bot) {
           ])
         }
       );
+      registerMessage(session, msg.message_id);
       return;
     }
     
@@ -1724,7 +1867,7 @@ if (bot) {
     await showMainMenu(ctx, session, true);
   });
 
-  // Checkout - start contact details collection
+  // Checkout - start contact details collection (with packaging check)
   bot.action('checkout', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
     const txt = getText(session);
@@ -1923,6 +2066,59 @@ if (bot) {
     await showOrderConfirmation(ctx, session);
   });
   
+  // Handle packaging selection during checkout
+  bot.action(/^pkg_(.+)$/, async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const shortId = ctx.match[1];
+    await ctx.answerCbQuery('Упаковку додано');
+    
+    // Find full product ID from short ID
+    const products = await getCachedProducts();
+    const product = products.find(p => p.id.startsWith(shortId) && p.catalogType === 'packaging');
+    
+    if (product) {
+      // Add 1 packaging to cart
+      const existingItem = session.cart.find(i => i.productId === product.id);
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        session.cart.push({ productId: product.id, quantity: 1 });
+      }
+    }
+    
+    // Proceed to contact details
+    session.step = 'checkout_name';
+    session.checkoutData = {};
+    
+    try { await ctx.deleteMessage(); } catch {}
+    
+    await ctx.reply(
+      '📝 *ОФОРМЛЕННЯ ЗАМОВЛЕННЯ*\n━━━━━━━━━━━━━━━━━━\n\n✅ Упаковку додано!\n\nВведіть ваше *ім\'я та прізвище*:',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+        [Markup.button.callback('❌ Скасувати', 'cart')]
+      ])}
+    );
+  });
+  
+  // Skip packaging during checkout
+  bot.action('skip_packaging', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    
+    // Proceed to contact details
+    session.step = 'checkout_name';
+    session.checkoutData = {};
+    
+    try { await ctx.deleteMessage(); } catch {}
+    
+    await ctx.reply(
+      '📝 *ОФОРМЛЕННЯ ЗАМОВЛЕННЯ*\n━━━━━━━━━━━━━━━━━━\n\nВведіть ваше *ім\'я та прізвище*:',
+      { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+        [Markup.button.callback('❌ Скасувати', 'cart')]
+      ])}
+    );
+  });
+  
   // Finalize checkout (after collecting contact details)
   bot.action('confirm_order', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
@@ -2017,6 +2213,19 @@ if (bot) {
       total -= discountApplied;
     }
     
+    // Calculate referral balance discount (will be applied and deducted on order completion)
+    let referralDiscountApplied = 0;
+    const referralBalance = parseFloat(customer?.referralBalance || '0');
+    if (referralBalance > 0) {
+      // Apply up to 100% of referral balance (max the total amount)
+      referralDiscountApplied = Math.min(referralBalance, total);
+      if (referralDiscountApplied > 0) {
+        total -= referralDiscountApplied;
+        // Note: Balance will be deducted when order is completed (not now)
+        // This ensures balance is only used for successfully completed orders
+      }
+    }
+    
     // Create order with beautiful number
     const orderNumber = `FL-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     
@@ -2048,6 +2257,9 @@ if (bot) {
         totalUah: item.total.toString()
       });
     }
+    
+    // Referral bonus will be awarded when order is confirmed (in admin panel)
+    // This ensures the bonus is only given for real completed orders
     
     // Exclude loyalty update from checkout, only handle in order status update
     /* 
@@ -2083,6 +2295,9 @@ if (bot) {
     const nextOrderDiscount = ((customer.totalOrders || 0) + 1) % 10 === 0 ? '1000' : '0';
     if (discountApplied > 0) {
       bonusMessage += `\n\n✅ *Застосовано знижку:* -${discountApplied.toLocaleString('uk-UA')} грн`;
+    }
+    if (referralDiscountApplied > 0) {
+      bonusMessage += `\n\n🎁 *Використано реферальний бонус:* -${referralDiscountApplied.toLocaleString('uk-UA')} грн`;
     }
     if (nextOrderDiscount === '1000') {
       bonusMessage += '\n\n🎁 *Вітаємо! Наступне замовлення зі знижкою 1000 грн!*';
@@ -2127,7 +2342,8 @@ if (bot) {
     await ctx.answerCbQuery();
     
     const products = await getCachedProducts();
-    const promos = products.filter(p => p.isPromo);
+    // Exclude packaging from promotions
+    const promos = products.filter(p => p.isPromo && p.catalogType !== 'packaging');
     
     if (promos.length === 0) {
       await ctx.editMessageText('Наразі немає акційних товарів', Markup.inlineKeyboard([
@@ -2259,53 +2475,23 @@ if (bot) {
   });
 
   bot.action('search', async (ctx) => {
+    console.log('🔍 Search action triggered');
     const session = getSession(ctx.from!.id.toString());
     session.step = 'search';
+    console.log('🔍 Session step set to search');
     await ctx.answerCbQuery();
     
-    await ctx.editMessageText(
+    // Clear old messages and send new prompt (can't edit media messages)
+    await clearOldMessages(ctx, session);
+    console.log('🔍 Old messages cleared');
+    
+    const msg = await ctx.reply(
       '🔍 *Пошук товарів*\n\nВведіть назву квітки або сорт для пошуку:',
       { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
         [Markup.button.callback('🏠 Меню', 'menu')]
       ])}
     );
-  });
-
-  bot.on('text', async (ctx) => {
-    const session = getSession(ctx.from!.id.toString());
-    const txt = getText(session);
-
-    if (session.step === 'search') {
-      const query = ctx.message.text.toLowerCase();
-      const products = await getCachedProducts();
-      
-      const results = products.filter(p => 
-        p.name.toLowerCase().includes(query) || 
-        p.variety.toLowerCase().includes(query)
-      );
-
-      // Try to delete user's text message and the prompt
-      try { await ctx.deleteMessage(); } catch {}
-
-      if (results.length === 0) {
-        await ctx.reply('❌ Товарів не знайдено. Спробуйте іншу назву або поверніться в меню:', Markup.inlineKeyboard([
-          [Markup.button.callback('🔍 Шукати ще', 'search')],
-          [Markup.button.callback('🏠 Меню', 'menu')]
-        ]));
-        return;
-      }
-
-      for (const product of results.slice(0, 10)) {
-        await sendProductCard(ctx, product, session);
-      }
-
-      await ctx.reply(`📊 Знайдено товарів: ${results.length}`, Markup.inlineKeyboard([
-        [Markup.button.callback('🔍 Шукати ще', 'search')],
-        [Markup.button.callback('🏠 Меню', 'menu')]
-      ]));
-      session.step = 'menu';
-      return;
-    }
+    session.messagesToDelete.push(msg.message_id);
   });
 
   // Packaging section
@@ -2364,6 +2550,39 @@ if (bot) {
     ]));
   });
 
+  // Referral Program
+  bot.action('referral', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const txt = getText(session);
+    const telegramId = ctx.from!.id.toString();
+    await ctx.answerCbQuery();
+    
+    const customers = await storage.getCustomers();
+    const customer = customers.find(c => c.telegramId === telegramId);
+    
+    if (!customer) {
+      await ctx.editMessageText('❌ Клієнт не знайдений', Markup.inlineKeyboard([
+        [Markup.button.callback('🏠 Головне меню', 'menu')]
+      ]));
+      return;
+    }
+    
+    const code = customer.referralCode || 'N/A';
+    const balance = parseFloat(customer.referralBalance || '0');
+    const count = customer.referralCount || 0;
+    const botUsername = ctx.botInfo?.username || 'kvitka_opt_bot';
+    
+    await ctx.editMessageText(
+      txt.referralInfo(code, balance, count, botUsername),
+      { 
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          [Markup.button.callback('🏠 Головне меню', 'menu')]
+        ])
+      }
+    );
+  });
+
   // Settings
   bot.action('settings', async (ctx) => {
     const session = getSession(ctx.from!.id.toString());
@@ -2376,7 +2595,7 @@ if (bot) {
         [Markup.button.callback(txt.changeLanguage, 'change_lang')],
         [Markup.button.callback(txt.changeCity, 'change_city')],
         [Markup.button.callback(txt.changeType, 'change_type')],
-        [Markup.button.callback('🏠 Головне меню', 'menu')]
+        [Markup.button.callback(txt.menuButton, 'menu')]
       ])
     );
   });

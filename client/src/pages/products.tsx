@@ -50,6 +50,7 @@ import {
   Flower2,
   ImagePlus,
   X,
+  Video,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -74,6 +75,7 @@ const productFormSchema = z.object({
   promoPercent: z.number().min(0).max(100).optional(),
   promoEndDate: z.string().optional(),
   images: z.array(z.string()).default([]),
+  videos: z.array(z.string()).default([]),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -147,7 +149,7 @@ export default function Products() {
       color: "",
       status: "available",
       catalogType: "preorder",
-      packSize: 25,
+      packSize: 1,
       isPromo: false,
       promoPercent: 0,
       promoEndDate: "",
@@ -239,13 +241,14 @@ export default function Products() {
       color: product.color,
       priceUsd: product.priceUsd?.toString() || "",
       priceUah: product.priceUah?.toString() || "",
-      packSize: product.packSize || 25,
+      packSize: product.packSize || 1,
       status: product.status,
       catalogType: product.catalogType,
       isPromo: product.isPromo || false,
       promoPercent: (product as any).promoPercent || 0,
       promoEndDate: (product as any).promoEndDate ? new Date((product as any).promoEndDate).toISOString().split('T')[0] : "",
       images: product.images || [],
+      videos: (product as any).videos || [],
     });
     setIsDialogOpen(true);
   };
@@ -259,6 +262,9 @@ export default function Products() {
   };
 
   const filteredProducts = products?.filter((product) => {
+    // Exclude packaging from products list (packaging has its own page)
+    if (product.catalogType === 'packaging') return false;
+    
     const matchesSearch = 
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.variety.toLowerCase().includes(search.toLowerCase());
@@ -524,7 +530,7 @@ export default function Products() {
                     name="priceUsd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Ціна (USD)</FormLabel>
+                        <FormLabel>Ціна за шт (USD)</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="0.00" 
@@ -539,7 +545,7 @@ export default function Products() {
                   
                   {/* UAH price - auto-calculated from USD */}
                   <FormItem>
-                    <FormLabel>Ціна (UAH) - авто</FormLabel>
+                    <FormLabel>Ціна за шт (UAH) - авто</FormLabel>
                     <div className="flex items-center h-9 px-3 rounded-md border bg-muted text-muted-foreground">
                       {(() => {
                         const usd = parseFloat(form.watch("priceUsd") || "0");
@@ -559,8 +565,9 @@ export default function Products() {
                         <FormControl>
                           <Input
                             type="number"
+                            min={1}
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 25)}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                             data-testid="input-product-pack"
                           />
                         </FormControl>
@@ -750,6 +757,75 @@ export default function Products() {
                       />
                       <ImagePlus className="h-6 w-6 mb-1" />
                       <span className="text-[10px]">Завантажити</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <FormLabel>Відео</FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    {form.watch("videos")?.map((url, index) => (
+                      <div key={index} className="relative aspect-video rounded-md overflow-hidden border group">
+                        <video src={url} className="w-full h-full object-cover" controls />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = form.getValues("videos") || [];
+                            form.setValue("videos", current.filter((_, i) => i !== index));
+                          }}
+                          className="absolute top-1 right-1 bg-black/60 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3 w-3 text-white" />
+                        </button>
+                      </div>
+                    ))}
+                    <label
+                      className="aspect-video rounded-md border border-dashed flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <input
+                        type="file"
+                        accept="video/*"
+                        multiple
+                        className="hidden"
+                        data-testid="input-product-video-upload"
+                        onChange={async (e) => {
+                          const files = e.target.files;
+                          if (!files || files.length === 0) return;
+                          
+                          for (const file of Array.from(files)) {
+                            const formData = new FormData();
+                            formData.append('video', file);
+                            
+                            try {
+                              const response = await fetch('/api/upload-video', {
+                                method: 'POST',
+                                body: formData,
+                              });
+                              
+                              if (response.ok) {
+                                const data = await response.json();
+                                const current = form.getValues("videos") || [];
+                                form.setValue("videos", [...current, data.url]);
+                              } else {
+                                toast({
+                                  title: "Помилка",
+                                  description: "Не вдалося завантажити відео",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Помилка",
+                                description: "Не вдалося завантажити відео",
+                                variant: "destructive",
+                              });
+                            }
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      <Video className="h-6 w-6 mb-1" />
+                      <span className="text-[10px]">Завантажити відео</span>
                     </label>
                   </div>
                 </div>

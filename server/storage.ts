@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, ne } from "drizzle-orm";
 import {
   users, countries, plantations, flowerTypes, products,
   customers, orders, orderItems, settings,
@@ -44,12 +44,16 @@ export interface IStorage {
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
   blockCustomer(id: string, isBlocked: boolean): Promise<Customer | undefined>;
+  getCustomerByReferralCode(code: string): Promise<Customer | undefined>;
+  addReferralBonus(referrerId: string, bonusAmount: number): Promise<Customer | undefined>;
+  useReferralBalance(customerId: string, amount: number): Promise<Customer | undefined>;
   getCustomerOrders(customerId: string): Promise<Order[]>;
   getOrders(): Promise<OrderWithDetails[]>;
   getOrder(id: string): Promise<OrderWithDetails | undefined>;
   getRecentOrders(limit?: number): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+  updateOrder(id: string, data: Partial<InsertOrder>): Promise<Order | undefined>;
   createOrderItem(item: InsertOrderItem): Promise<OrderItem>;
   getOrderItems(orderId: string): Promise<OrderItem[]>;
   getSettings(): Promise<Settings[]>;
@@ -169,8 +173,8 @@ export class DatabaseStorage implements IStorage {
     const [p] = await db.select().from(products).where(eq(products.id, id));
     if (!p) return undefined;
     
-    const country = await this.getCountry(p.countryId);
-    const flowerType = await this.getFlowerType(p.typeId);
+    const country = p.countryId ? await this.getCountry(p.countryId) : undefined;
+    const flowerType = p.typeId ? await this.getFlowerType(p.typeId) : undefined;
     const plantation = p.plantationId ? await this.getPlantation(p.plantationId) : undefined;
 
     return { ...p, country, flowerType, plantation };
@@ -193,7 +197,7 @@ export class DatabaseStorage implements IStorage {
 
   async getCustomers(): Promise<Customer[]> {
     const customerList = await db.select().from(customers);
-    const orderList = await db.select().from(orders).where(sql`${orders.status} != 'cancelled'`);
+    const orderList = await db.select().from(orders).where(ne(orders.status, 'cancelled'));
 
     return customerList.map(customer => {
       const customerOrders = orderList.filter(o => o.customerId === customer.id);
@@ -214,14 +218,68 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    // Generate unique referral code with collision check
+    let referralCode: string;
+    let attempts = 0;
+    const maxAttempts = 5;
+    
+    do {
+      referralCode = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const existing = await this.getCustomerByReferralCode(referralCode);
+      if (!existing) break;
+      attempts++;
+    } while (attempts < maxAttempts);
+    
+    // If still colliding after max attempts, add timestamp for uniqueness
+    if (attempts >= maxAttempts) {
+      referralCode = 'REF' + Date.now().toString(36).toUpperCase().substring(0, 8);
+    }
+    
     const [c] = await db.insert(customers).values({
       ...customer,
       loyaltyPoints: 0,
       totalOrders: 0,
       totalSpent: "0",
-      isBlocked: customer.isBlocked ?? false
+      isBlocked: customer.isBlocked ?? false,
+      referralCode: referralCode,
+      referralBalance: "0",
+      referralCount: 0
     }).returning();
     return c;
+  }
+  
+  async getCustomerByReferralCode(code: string): Promise<Customer | undefined> {
+    const [c] = await db.select().from(customers).where(eq(customers.referralCode, code));
+    return c || undefined;
+  }
+  
+  async addReferralBonus(referrerId: string, bonusAmount: number): Promise<Customer | undefined> {
+    const referrer = await this.getCustomer(referrerId);
+    if (!referrer) return undefined;
+    
+    const currentBalance = parseFloat(referrer.referralBalance || "0");
+    const currentCount = referrer.referralCount || 0;
+    
+    const [c] = await db.update(customers).set({
+      referralBalance: (currentBalance + bonusAmount).toFixed(2),
+      referralCount: currentCount + 1
+    }).where(eq(customers.id, referrerId)).returning();
+    
+    return c || undefined;
+  }
+  
+  async useReferralBalance(customerId: string, amount: number): Promise<Customer | undefined> {
+    const customer = await this.getCustomer(customerId);
+    if (!customer) return undefined;
+    
+    const currentBalance = parseFloat(customer.referralBalance || "0");
+    if (amount > currentBalance) return undefined;
+    
+    const [c] = await db.update(customers).set({
+      referralBalance: (currentBalance - amount).toFixed(2)
+    }).where(eq(customers.id, customerId)).returning();
+    
+    return c || undefined;
   }
 
   async updateCustomer(id: string, customer: Partial<InsertCustomer>): Promise<Customer | undefined> {
@@ -283,6 +341,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
     const [o] = await db.update(orders).set({ status, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+    return o || undefined;
+  }
+
+  async updateOrder(id: string, data: Partial<InsertOrder>): Promise<Order | undefined> {
+    const [o] = await db.update(orders).set({ ...data, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
     return o || undefined;
   }
 
