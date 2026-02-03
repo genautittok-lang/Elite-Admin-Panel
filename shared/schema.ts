@@ -47,6 +47,7 @@ export const products = pgTable("products", {
   plantationId: varchar("plantation_id"),
   flowerClass: text("flower_class").notNull().default("Standard"), // Standard, Premium, Garden
   height: text("height").notNull().default("0"), // in cm, comma-separated for multiple heights (e.g., "40, 50, 60")
+  heightPrices: text("height_prices"), // JSON format for multi-height pricing: {"60": 1.20, "70": 2.20}
   color: text("color").notNull().default(""),
   priceUsd: decimal("price_usd", { precision: 10, scale: 2 }),
   priceUah: decimal("price_uah", { precision: 10, scale: 2 }),

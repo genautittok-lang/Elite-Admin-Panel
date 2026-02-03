@@ -62,6 +62,7 @@ const productFormSchema = z.object({
   plantationId: z.string().optional(),
   flowerClass: z.string().min(1, "Обов'язкове поле"),
   height: z.string().min(1, "Обов'язкове поле"),
+  heightPrices: z.string().optional(),
   color: z.string().min(1, "Обов'язкове поле"),
   priceUsd: z.string().optional(),
   priceUah: z.string().optional(),
@@ -117,6 +118,7 @@ export default function Products() {
       countryId: "",
       flowerClass: "Standard",
       height: "50",
+      heightPrices: "",
       color: "",
       status: "available",
       catalogType: "preorder",
@@ -204,6 +206,7 @@ export default function Products() {
       plantationId: product.plantationId || undefined,
       flowerClass: product.flowerClass,
       height: String(product.height),
+      heightPrices: (product as any).heightPrices || "",
       color: product.color,
       priceUsd: product.priceUsd?.toString() || "",
       priceUah: product.priceUah?.toString() || "",
@@ -388,6 +391,26 @@ export default function Products() {
                             data-testid="input-product-height"
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="heightPrices"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ціни за висотами (опційно)</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder='60:1.20, 70:2.20, 80:3.00'
+                            {...field}
+                            data-testid="input-product-height-prices"
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Формат: висота:ціна через кому. Приклад: 60:1.20, 70:2.20
+                        </p>
                         <FormMessage />
                       </FormItem>
                     )}

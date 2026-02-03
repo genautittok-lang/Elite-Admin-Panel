@@ -606,8 +606,21 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     message += `├ ${txt.height}: ${product.height} см\n`;
     message += `└ ${txt.color}: ${product.color}\n\n`;
     
-    // For preorder items, show both USD and UAH with "ціна за штуку"
-    if (product.catalogType === 'preorder') {
+    // Check if multi-height pricing is available
+    const heightPricesStr = (product as any).heightPrices;
+    if (heightPricesStr && product.catalogType === 'preorder') {
+      // Parse heightPrices format: "60:1.20, 70:2.20"
+      const parts = heightPricesStr.split(',').map((p: string) => p.trim());
+      message += `💰 *Ціни за висотами:*\n`;
+      for (const part of parts) {
+        const [h, p] = part.split(':');
+        if (h && p) {
+          message += `   ${h.trim()} см - $${parseFloat(p.trim()).toFixed(2)}\n`;
+        }
+      }
+      message += `_(ціна за шт)_`;
+    } else if (product.catalogType === 'preorder') {
+      // For preorder items, show both USD and UAH with "ціна за штуку"
       const usdPrice = parseFloat(product.priceUsd?.toString() || '0');
       message += `💰 *$${usdPrice.toFixed(2)} / ${price.toLocaleString('uk-UA')} грн* _(ціна за шт)_`;
     } else {
@@ -1597,6 +1610,10 @@ if (bot) {
     const telegramId = ctx.from!.id.toString();
     await ctx.answerCbQuery();
     
+    // Delete confirmation message and clear old messages
+    try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
+    
     // Create order in storage
     const products = await getCachedProducts();
     let total = 0;
@@ -1657,12 +1674,13 @@ if (bot) {
       itemsDescription = itemsDescription.substring(0, 197) + '...';
     }
     
+    const packagingNote = session.checkoutData?.needsPackaging ? ' | Упаковка: Так' : '';
     const order = await storage.createOrder({
       orderNumber,
       customerId: customer.id,
       status: 'new',
       totalUah: total.toString(),
-      comment: `${session.city || ''} | ${itemsDescription}${discountApplied > 0 ? ' | Знижка -' + discountApplied + ' грн' : ''}`
+      comment: `${session.city || ''} | ${itemsDescription}${packagingNote}${discountApplied > 0 ? ' | Знижка -' + discountApplied + ' грн' : ''}`
     });
     
     // Persist order items
