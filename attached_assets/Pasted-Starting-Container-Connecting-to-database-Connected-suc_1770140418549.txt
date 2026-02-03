@@ -1,0 +1,105 @@
+Starting Container
+📡 Connecting to database...
+✅ Connected successfully!
+📦 Tables already exist - running migrations...
+╔════════════════════════════════════════════════════════════╗
+║           🌸 KVITKA opt Database Check 🌸                   ║
+╚════════════════════════════════════════════════════════════╝
+✅ Migrations applied successfully
+╔════════════════════════════════════════════════════════════╗
+║              ✅ Database ready!                            ║
+╚════════════════════════════════════════════════════════════╝
+npm warn config production Use `--omit=dev` instead.
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.cjs
+Setting up static file serving...
+Looking for build directory at: /app/dist/public
+Build directory found!
+╔════════════════════════════════════════════════════════════╗
+║              🌸 KVITKA opt Server Started 🌸               ║
+╠════════════════════════════════════════════════════════════╣
+║  🌐 Port: 8080                                            ║
+║  🔧 Mode: production                                   ║
+║  ✅ Status: Ready                                          ║
+╚════════════════════════════════════════════════════════════╝
+5:39:32 PM [express] GET /api/analytics/top-customers 304 in 191ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","name":"богдан","shopName":"","totalOrders":2,"totalSpent":108000},{"id":"03f36ce9-99ad-414d-a39e-9b9644ce6cec","name":"Bogdan","shopName":"","totalOrders":0,"totalSpent":0},{"id":"77c2291d-0111-4bde-9717-f2c6ca46e559","name":"𝔐𝔞𝔯𝔱𝔞💕","shopName":"","totalOrders":0,"totalSpent":0},{"id":"083ebf6e-c8c4-466b-8de3-73d008c7e301","name":"Дмитрий","shopName":"","totalOrders":0,"totalSpent":0},{"id":"02c6e93f-7414-4f8c-9be5-0219e1af809c","name":"На\nНа","shopName":"","totalOrders":0,"totalSpent":0},{"id":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","name":"Hugh","shopName":"","totalOrders":0,"totalSpent":0},{"id":"f9e96289-7df9-44e5-882d-53d33ea46304","name":"Hutsul","shopName":"","totalOrders":0,"totalSpent":0}]
+5:39:32 PM [express] GET /api/orders/recent 304 in 207ms :: [{"id":"6eb3b598-a6d1-4403-ae8c-a54897adb7d6","orderNumber":"FL-20260202-8115","customerId":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","status":"new","totalUah":"17866.50","comment":"Вінниця | Кущова троянда  x150, Кущова троянда  x150","referralDiscountPending":"0.00","createdAt":"2026-02-02T12:33:04.838Z","updatedAt":"2026-02-02T12:33:04.838Z"},{"id":"7de4be52-cab2-44df-b63c-c11a97202467","orderNumber":"FL-20260202-2762","customerId":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","status":"new","totalUah":"8127.00","comment":"Вінниця | Кущова троянда  x100, Кущова троянда  x50","referralDiscountPending":"0.00","createdAt":"2026-02-02T02:28:34.396Z","updatedAt":"2026-02-02T02:28:34.396Z"},{"id":"5d99174e-89c7-44c1-8b0c-2ce118cd96bf","orderNumber":"FL-20260129-3905","customerId":"02c6e93f-7414-4f8c-9be5-0219e1af809c","status":"cancelled","totalUah":"872242.50","comment":"Київ | Троянда x2000, коробка для квітів x1","referralDiscountPending":"0.00","createdAt":"2026-01-29T06:44:34.959Z","updatedAt":"2026-01-29T06:48:26.332Z"},{"id":"72830e18-1b36-4e2c-87d6-787c4832fe52","orderNumber":"FL-20260127-9190","customerId":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","status":"cancelled","totalUah":"189025.00","comment":" | Троянда x100, коробочка для сімень x1","referralDiscountPending":"0.00","createdAt":"2026-01-27T19:03:04.733Z","updatedAt":"2026-01-27T19:03:29.622Z"},{"id":"fbb5529f-0a38-4c09-82c3-92994e15fb52","orderNumber":"FL-20260127-8069","customerId":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","status":"cancelled","totalUah":"13072.50","comment":"Вінниця | Трояндаа x21","referralDiscountPending":"0.00","createdAt":"2026-01-27T14:00:25.806Z","updatedAt":"2026-01-27T19:03:31.944Z"}]
+5:39:32 PM [express] GET /api/analytics/top-products 500 in 213ms :: {"error":"Failed to get top products"}
+Dashboard stats error: error: column "height_prices" does not exist
+    at /app/dist/index.cjs:68:13326
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/dist/index.cjs:76:31378
+    at async wm.getDashboardStats (/app/dist/index.cjs:76:109553)
+    at async /app/dist/index.cjs:333:6929 {
+  length: 114,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '101',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+5:39:32 PM [express] GET /api/dashboard/stats 500 in 231ms :: {"error":"Failed to get stats"}
+Get orders error: error: column "height_prices" does not exist
+    at /app/dist/index.cjs:68:13326
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /app/dist/index.cjs:76:31378
+    at async wm.getOrders (/app/dist/index.cjs:76:107926)
+    at async /app/dist/index.cjs:334:234 {
+  length: 114,
+  severity: 'ERROR',
+  code: '42703',
+  detail: undefined,
+  hint: undefined,
+  position: '101',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '3716',
+  routine: 'errorMissingColumn'
+}
+5:39:32 PM [express] GET /api/orders 500 in 250ms :: {"error":"Failed to get orders"}
+Dashboard stats error: error: column "height_prices" does not exist
+    at /app/dist/index.cjs:68:13326
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+  dataType: undefined,
+    at async /app/dist/index.cjs:76:31378
+    at async wm.getOrders (/app/dist/index.cjs:76:107926)
+  constraint: undefined,
+    at async wm.getDashboardStats (/app/dist/index.cjs:76:109553)
+  file: 'parse_relation.c',
+    at async /app/dist/index.cjs:334:234 {
+    at async /app/dist/index.cjs:333:6929 {
+  line: '3716',
+  length: 114,
+  length: 114,
+  routine: 'errorMissingColumn'
+  severity: 'ERROR',
+}
+  severity: 'ERROR',
+  code: '42703',
+5:39:35 PM [express] GET /api/orders 500 in 31ms :: {"error":"Failed to get orders"}
+  code: '42703',
+5:39:35 PM [express] GET /api/analytics/top-customers 304 in 189ms :: [{"id":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","name":"богдан","shopName":"","totalOrders":2,"totalSpent":108000},{"id":"03f36ce9-99ad-414d-a39e-9b9644ce6cec","name":"Bogdan","shopName":"","totalOrders":0,"totalSpent":0},{"id":"77c2291d-0111-4bde-9717-f2c6ca46e559","name":"𝔐𝔞𝔯𝔱𝔞💕","shopName":"","totalOrders":0,"totalSpent":0},{"id":"083ebf6e-c8c4-466b-8de3-73d008c7e301","name":"Дмитрий","shopName":"","totalOrders":0,"totalSpent":0},{"id":"02c6e93f-7414-4f8c-9be5-0219e1af809c","name":"На\nНа","shopName":"","totalOrders":0,"totalSpent":0},{"id":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","name":"Hugh","shopName":"","totalOrders":0,"totalSpent":0},{"id":"f9e96289-7df9-44e5-882d-53d33ea46304","name":"Hutsul","shopName":"","totalOrders":0,"totalSpent":0}]
+  detail: undefined,
+  detail: undefined,
+5:39:35 PM [express] GET /api/orders/recent 304 in 194ms :: [{"id":"6eb3b598-a6d1-4403-ae8c-a54897adb7d6","orderNumber":"FL-20260202-8115","customerId":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","status":"new","totalUah":"17866.50","comment":"Вінниця | Кущова троянда  x150, Кущова троянда  x150","referralDiscountPending":"0.00","createdAt":"2026-02-02T12:33:04.838Z","updatedAt":"2026-02-02T12:33:04.838Z"},{"id":"7de4be52-cab2-44df-b63c-c11a97202467","orderNumber":"FL-20260202-2762","customerId":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","status":"new","totalUah":"8127.00","comment":"Вінниця | Кущова троянда  x100, Кущова троянда  x50","referralDiscountPending":"0.00","createdAt":"2026-02-02T02:28:34.396Z","updatedAt":"2026-02-02T02:28:34.396Z"},{"id":"5d99174e-89c7-44c1-8b0c-2ce118cd96bf","orderNumber":"FL-20260129-3905","customerId":"02c6e93f-7414-4f8c-9be5-0219e1af809c","status":"cancelled","totalUah":"872242.50","comment":"Київ | Троянда x2000, коробка для квітів x1","referralDiscountPending":"0.00","createdAt":"2026-01-29T06:44:34.959Z","updatedAt":"2026-01-29T06:48:26.332Z"},{"id":"72830e18-1b36-4e2c-87d6-787c4832fe52","orderNumber":"FL-20260127-9190","customerId":"1b71aa1b-18a6-4241-9979-aa2d3f590e2e","status":"cancelled","totalUah":"189025.00","comment":" | Троянда x100, коробочка для сімень x1","referralDiscountPending":"0.00","createdAt":"2026-01-27T19:03:04.733Z","updatedAt":"2026-01-27T19:03:29.622Z"},{"id":"fbb5529f-0a38-4c09-82c3-92994e15fb52","orderNumber":"FL-20260127-8069","customerId":"d48bf72c-0c25-49ac-8038-2cbcfa755df6","status":"cancelled","totalUah":"13072.50","comment":"Вінниця | Трояндаа x21","referralDiscountPending":"0.00","createdAt":"2026-01-27T14:00:25.806Z","updatedAt":"2026-01-27T19:03:31.944Z"}]
+  hint: undefined,
+5:39:35 PM [express] GET /api/analytics/top-products 500 in 195ms :: {"error":"Failed to get top products"}
+  hint: undefined,
