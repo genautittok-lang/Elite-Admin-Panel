@@ -56,6 +56,7 @@ async function initDatabase() {
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS catalog_type TEXT DEFAULT 'preorder'`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT[]`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS videos TEXT[]`,
+        `ALTER TABLE products ADD COLUMN IF NOT EXISTS height_prices TEXT`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS expected_date TIMESTAMP`,
         `ALTER TABLE products ADD COLUMN IF NOT EXISTS pack_size INTEGER DEFAULT 25`,
         // Customers table - referral fields
