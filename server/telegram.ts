@@ -408,6 +408,9 @@ async function showMainMenu(ctx: Context, session: UserSession, edit = false) {
     [Markup.button.callback(txt.about, 'about')]
   ]);
 
+  // Delete current message first (the one with the button that was clicked)
+  try { await ctx.deleteMessage(); } catch {}
+  
   // Always clear previous messages before showing menu
   await clearOldMessages(ctx, session);
   
