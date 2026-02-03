@@ -151,6 +151,7 @@ export async function registerRoutes(
       const stats = await storage.getDashboardStats();
       res.json(stats);
     } catch (error) {
+      console.error("Dashboard stats error:", error);
       res.status(500).json({ error: "Failed to get stats" });
     }
   });
@@ -302,6 +303,7 @@ export async function registerRoutes(
       const products = await storage.getProducts();
       res.json(products);
     } catch (error) {
+      console.error("Get products error:", error);
       res.status(500).json({ error: "Failed to get products" });
     }
   });
@@ -498,6 +500,7 @@ export async function registerRoutes(
       const orders = await storage.getOrders();
       res.json(orders);
     } catch (error) {
+      console.error("Get orders error:", error);
       res.status(500).json({ error: "Failed to get orders" });
     }
   });
@@ -507,6 +510,7 @@ export async function registerRoutes(
       const orders = await storage.getRecentOrders(5);
       res.json(orders);
     } catch (error) {
+      console.error("Get recent orders error:", error);
       res.status(500).json({ error: "Failed to get recent orders" });
     }
   });
