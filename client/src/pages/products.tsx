@@ -49,6 +49,7 @@ import {
   Filter,
   Flower2,
   ImagePlus,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -77,6 +78,29 @@ const productFormSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
 
+// Height-Price pair type
+interface HeightPricePair {
+  height: string;
+  price: string;
+}
+
+// Parse height prices string to array of pairs
+function parseHeightPrices(str: string): HeightPricePair[] {
+  if (!str || str.trim() === "") return [];
+  return str.split(",").map(p => {
+    const [h, pr] = p.trim().split(":");
+    return { height: h?.trim() || "", price: pr?.trim() || "" };
+  }).filter(p => p.height || p.price);
+}
+
+// Convert array of pairs to string format
+function formatHeightPrices(pairs: HeightPricePair[]): string {
+  return pairs
+    .filter(p => p.height && p.price)
+    .map(p => `${p.height}:${p.price}`)
+    .join(", ");
+}
+
 export default function Products() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -84,6 +108,7 @@ export default function Products() {
   const [catalogFilter, setCatalogFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductWithDetails | null>(null);
+  const [heightPricePairs, setHeightPricePairs] = useState<HeightPricePair[]>([]);
 
   const { data: products, isLoading } = useQuery<ProductWithDetails[]>({
     queryKey: ["/api/products"],
@@ -154,6 +179,7 @@ export default function Products() {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({ title: "Товар створено" });
       setIsDialogOpen(false);
+      setHeightPricePairs([]);
       form.reset();
     },
     onError: () => {
@@ -171,6 +197,7 @@ export default function Products() {
       toast({ title: "Товар оновлено" });
       setIsDialogOpen(false);
       setEditingProduct(null);
+      setHeightPricePairs([]);
       form.reset();
     },
     onError: (error: Error) => {
@@ -198,6 +225,8 @@ export default function Products() {
 
   const handleEdit = (product: ProductWithDetails) => {
     setEditingProduct(product);
+    const hpStr = (product as any).heightPrices || "";
+    setHeightPricePairs(parseHeightPrices(hpStr));
     form.reset({
       name: product.name,
       variety: product.variety,
@@ -206,7 +235,7 @@ export default function Products() {
       plantationId: product.plantationId || undefined,
       flowerClass: product.flowerClass,
       height: String(product.height),
-      heightPrices: (product as any).heightPrices || "",
+      heightPrices: hpStr,
       color: product.color,
       priceUsd: product.priceUsd?.toString() || "",
       priceUah: product.priceUah?.toString() || "",
@@ -250,6 +279,7 @@ export default function Products() {
           setIsDialogOpen(open);
           if (!open) {
             setEditingProduct(null);
+            setHeightPricePairs([]);
             form.reset();
           }
         }}>
@@ -399,17 +429,70 @@ export default function Products() {
                     control={form.control}
                     name="heightPrices"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ціни за висотами (опційно)</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder='60:1.20, 70:2.20, 80:3.00'
-                            {...field}
-                            data-testid="input-product-height-prices"
-                          />
-                        </FormControl>
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Ціни за висотами (USD за шт, опційно)</FormLabel>
+                        <div className="space-y-2">
+                          {heightPricePairs.map((pair, index) => (
+                            <div key={index} className="flex gap-2 items-center">
+                              <Input
+                                type="number"
+                                placeholder="см"
+                                value={pair.height}
+                                onChange={(e) => {
+                                  const newPairs = [...heightPricePairs];
+                                  newPairs[index] = { ...newPairs[index], height: e.target.value };
+                                  setHeightPricePairs(newPairs);
+                                  field.onChange(formatHeightPrices(newPairs));
+                                }}
+                                className="w-20"
+                                data-testid={`input-height-${index}`}
+                              />
+                              <span className="text-sm text-muted-foreground">см</span>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="USD"
+                                value={pair.price}
+                                onChange={(e) => {
+                                  const newPairs = [...heightPricePairs];
+                                  newPairs[index] = { ...newPairs[index], price: e.target.value };
+                                  setHeightPricePairs(newPairs);
+                                  field.onChange(formatHeightPrices(newPairs));
+                                }}
+                                className="w-24"
+                                data-testid={`input-price-${index}`}
+                              />
+                              <span className="text-sm text-muted-foreground">$</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  const newPairs = heightPricePairs.filter((_, i) => i !== index);
+                                  setHeightPricePairs(newPairs);
+                                  field.onChange(formatHeightPrices(newPairs));
+                                }}
+                                data-testid={`button-remove-height-${index}`}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setHeightPricePairs([...heightPricePairs, { height: "", price: "" }]);
+                            }}
+                            data-testid="button-add-height-price"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Додати висоту
+                          </Button>
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                          Формат: висота:ціна через кому. Приклад: 60:1.20, 70:2.20
+                          Ціни в доларах США за штуку. Конвертуються в гривні автоматично.
                         </p>
                         <FormMessage />
                       </FormItem>
@@ -678,6 +761,7 @@ export default function Products() {
                     onClick={() => {
                       setIsDialogOpen(false);
                       setEditingProduct(null);
+                      setHeightPricePairs([]);
                       form.reset();
                     }}
                   >
