@@ -294,6 +294,17 @@ export async function registerRoutes(
       if (updateData.plantationId === "" || updateData.plantationId === undefined) {
         updateData.plantationId = null;
       }
+      // Handle date fields - convert strings to Date objects
+      if (updateData.expectedDate) {
+        updateData.expectedDate = new Date(updateData.expectedDate);
+      } else if (updateData.expectedDate === "" || updateData.expectedDate === null) {
+        updateData.expectedDate = null;
+      }
+      if (updateData.promoEndDate) {
+        updateData.promoEndDate = new Date(updateData.promoEndDate);
+      } else if (updateData.promoEndDate === "" || updateData.promoEndDate === null) {
+        updateData.promoEndDate = null;
+      }
       
       const product = await storage.updateProduct(req.params.id, updateData);
       if (!product) {
