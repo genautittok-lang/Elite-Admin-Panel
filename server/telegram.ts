@@ -646,12 +646,21 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     message += `\n🏷️ _Ваша знижка: -5%_`;
   }
   
+  // Different quantity buttons for packaging vs flowers
+  const qtyButtons = isPackaging 
+    ? [
+        Markup.button.callback('+1 шт', `c_1_${shortId}`),
+        Markup.button.callback('+5 шт', `c_5_${shortId}`),
+        Markup.button.callback('+25 шт', `c_25_${shortId}`)
+      ]
+    : [
+        Markup.button.callback('+25 шт', `c_25_${shortId}`),
+        Markup.button.callback('+50 шт', `c_50_${shortId}`),
+        Markup.button.callback('+100 шт', `c_100_${shortId}`)
+      ];
+  
   const buttons = Markup.inlineKeyboard([
-    [
-      Markup.button.callback('+25 шт', `c_25_${shortId}`),
-      Markup.button.callback('+50 шт', `c_50_${shortId}`),
-      Markup.button.callback('+100 шт', `c_100_${shortId}`)
-    ],
+    qtyButtons,
     [
       Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
       Markup.button.callback('🧺 Кошик', 'cart')
@@ -1401,13 +1410,31 @@ if (bot) {
       await ctx.answerCbQuery('❤️ Додано до обраного!');
     }
     
+    // Check if this is a packaging product
+    const isPackaging = (product as any).flowerType?.category === 'packaging' ||
+      product.name.toLowerCase().includes('упакування') ||
+      product.name.toLowerCase().includes('плівка') ||
+      product.name.toLowerCase().includes('папір') ||
+      product.name.toLowerCase().includes('стрічка') ||
+      product.name.toLowerCase().includes('коробка') ||
+      product.name.toLowerCase().includes('сітка');
+    
+    // Different quantity buttons for packaging vs flowers
+    const qtyButtons = isPackaging 
+      ? [
+          Markup.button.callback('+1 шт', `c_1_${shortId}`),
+          Markup.button.callback('+5 шт', `c_5_${shortId}`),
+          Markup.button.callback('+25 шт', `c_25_${shortId}`)
+        ]
+      : [
+          Markup.button.callback('+25 шт', `c_25_${shortId}`),
+          Markup.button.callback('+50 шт', `c_50_${shortId}`),
+          Markup.button.callback('+100 шт', `c_100_${shortId}`)
+        ];
+    
     // Update the message with new button state
     const buttons = Markup.inlineKeyboard([
-      [
-        Markup.button.callback('+25 шт', `c_25_${shortId}`),
-        Markup.button.callback('+50 шт', `c_50_${shortId}`),
-        Markup.button.callback('+100 шт', `c_100_${shortId}`)
-      ],
+      qtyButtons,
       [
         Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
         Markup.button.callback('🧺 Кошик', 'cart')
