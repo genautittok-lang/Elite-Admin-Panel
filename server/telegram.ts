@@ -21,7 +21,7 @@ interface UserSession {
   customerType?: 'flower_shop' | 'wholesale';
   cart: { productId: string; quantity: number }[];
   favorites: string[];
-  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'checkout_packaging' | 'awaiting_confirmation' | 'search';
+  step: 'language' | 'city' | 'type' | 'menu' | 'catalog' | 'product' | 'cart' | 'order' | 'checkout_name' | 'checkout_phone' | 'checkout_address' | 'checkout_packaging' | 'checkout_select_packaging' | 'awaiting_confirmation' | 'search';
   currentCountry?: string;
   currentFarm?: string;
   currentType?: string;
@@ -609,13 +609,17 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     // Check if multi-height pricing is available
     const heightPricesStr = (product as any).heightPrices;
     if (heightPricesStr && product.catalogType === 'preorder') {
-      // Parse heightPrices format: "60:1.20, 70:2.20"
+      // Parse heightPrices format: "60:1.20, 70:2.20" - prices in USD, convert to UAH
+      const rateSetting = await storage.getSetting('usd_to_uah_rate');
+      const rate = parseFloat(rateSetting?.value || '41.5');
       const parts = heightPricesStr.split(',').map((p: string) => p.trim());
       message += `💰 *Ціни за висотами:*\n`;
       for (const part of parts) {
         const [h, p] = part.split(':');
         if (h && p) {
-          message += `   ${h.trim()} см - $${parseFloat(p.trim()).toFixed(2)}\n`;
+          const usdPrice = parseFloat(p.trim());
+          const uahPrice = Math.round(usdPrice * rate);
+          message += `   ${h.trim()} см - ${uahPrice.toLocaleString('uk-UA')} грн\n`;
         }
       }
       message += `_(ціна за шт)_`;
@@ -827,17 +831,22 @@ if (bot) {
         ])}
       );
       registerMessage(session, msg.message_id);
-    } else if ((session as any).awaitingSearch || session.step === 'menu') {
+    } else if ((session as any).awaitingSearch || session.step === 'search') {
       // Search functionality
       const searchTerm = ctx.message.text.toLowerCase();
+      
+      // Delete user's search message
+      try { await ctx.deleteMessage(); } catch {}
+      
       const products = await getCachedProducts();
       const found = products.filter(p => 
         p.name.toLowerCase().includes(searchTerm) || 
         p.variety.toLowerCase().includes(searchTerm)
       );
       
-      // Clear search flag
+      // Clear search flag and reset step
       (session as any).awaitingSearch = false;
+      session.step = 'menu';
       
       if (found.length === 0) {
         await ctx.reply(
@@ -1550,15 +1559,9 @@ if (bot) {
     );
     registerMessage(session, msg.message_id);
   });
-  
-  // Packaging question handlers
-  bot.action(/^packaging_(yes|no)$/, async (ctx) => {
-    const session = getSession(ctx.from!.id.toString());
-    const answer = ctx.match[1];
-    await ctx.answerCbQuery();
-    
-    session.checkoutData = session.checkoutData || {};
-    session.checkoutData.needsPackaging = answer === 'yes';
+
+  // Helper function to show order confirmation
+  const showOrderConfirmation = async (ctx: Context, session: UserSession) => {
     session.step = 'awaiting_confirmation';
     
     // Delete current message and clear old messages
@@ -1585,10 +1588,10 @@ if (bot) {
     // Show order summary for confirmation
     let summary = '📋 *ПІДТВЕРДЖЕННЯ ЗАМОВЛЕННЯ*\n';
     summary += '━━━━━━━━━━━━━━━━━━\n\n';
-    summary += `👤 *Ім'я:* ${escapeMd(session.checkoutData.name || '')}\n`;
-    summary += `📞 *Телефон:* ${escapeMd(session.checkoutData.phone || '')}\n`;
-    summary += `📍 *Адреса:* ${escapeMd(session.checkoutData.address || '')}\n`;
-    summary += `🎀 *Упаковка:* ${session.checkoutData.needsPackaging ? 'Так' : 'Ні'}\n\n`;
+    summary += `👤 *Ім'я:* ${escapeMd(session.checkoutData?.name || '')}\n`;
+    summary += `📞 *Телефон:* ${escapeMd(session.checkoutData?.phone || '')}\n`;
+    summary += `📍 *Адреса:* ${escapeMd(session.checkoutData?.address || '')}\n`;
+    summary += `🎀 *Упаковка:* ${session.checkoutData?.needsPackaging ? 'Так' : 'Ні'}\n\n`;
     summary += `📦 *Товари:*\n${itemsSummary}\n`;
     summary += `💵 *Сума:* ${total.toLocaleString('uk-UA')} грн\n`;
     
@@ -1601,6 +1604,104 @@ if (bot) {
       ])
     });
     registerMessage(session, summaryMsg.message_id);
+  };
+  
+  // Packaging question - "No" goes to confirmation
+  bot.action('packaging_no', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    
+    session.checkoutData = session.checkoutData || {};
+    session.checkoutData.needsPackaging = false;
+    
+    // Go to order confirmation
+    await showOrderConfirmation(ctx, session);
+  });
+
+  // Packaging question - "Yes" shows packaging products
+  bot.action('packaging_yes', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    
+    session.checkoutData = session.checkoutData || {};
+    session.checkoutData.needsPackaging = true;
+    session.step = 'checkout_select_packaging';
+    
+    // Delete current message
+    try { await ctx.deleteMessage(); } catch {}
+    await clearOldMessages(ctx, session);
+    
+    // Get packaging products
+    const products = await getCachedProducts();
+    const packagingProducts = products.filter(p => {
+      const flowerType = (p as any).flowerType;
+      return flowerType?.category === 'packaging' ||
+        p.name.toLowerCase().includes('упакування') ||
+        p.name.toLowerCase().includes('плівка') ||
+        p.name.toLowerCase().includes('папір');
+    });
+    
+    if (packagingProducts.length === 0) {
+      // No packaging products, go to confirmation
+      await showOrderConfirmation(ctx, session);
+      return;
+    }
+    
+    // Show packaging products with 1, 5, 25 qty buttons
+    let message = '🎀 *ОБЕРІТЬ УПАКОВКУ*\n━━━━━━━━━━━━━━━━━━\n\n';
+    const buttons: any[] = [];
+    
+    for (const product of packagingProducts) {
+      const price = await calculatePriceAsync(product, session);
+      const shortId = product.id.substring(0, 8);
+      message += `*${product.name}* - ${price.toLocaleString('uk-UA')} грн/шт\n`;
+      buttons.push([
+        Markup.button.callback(`${product.name}: +1`, `pkg_1_${shortId}`),
+        Markup.button.callback('+5', `pkg_5_${shortId}`),
+        Markup.button.callback('+25', `pkg_25_${shortId}`)
+      ]);
+    }
+    
+    message += '\n_Оберіть кількість упаковки або натисніть "Далі"_';
+    
+    buttons.push([Markup.button.callback('➡️ Далі', 'packaging_done')]);
+    buttons.push([Markup.button.callback('❌ Скасувати', 'cart')]);
+    
+    const msg = await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard(buttons)
+    });
+    registerMessage(session, msg.message_id);
+  });
+
+  // Add packaging to cart
+  bot.action(/^pkg_(\d+)_([a-f0-9]+)$/, async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    const quantity = parseInt(ctx.match[1]);
+    const shortId = ctx.match[2];
+    await ctx.answerCbQuery(`Додано ${quantity} шт`);
+    
+    // Find full product ID
+    const products = await getCachedProducts();
+    const product = products.find(p => p.id.startsWith(shortId));
+    
+    if (product) {
+      // Add to cart
+      const existing = session.cart.find(item => item.productId === product.id);
+      if (existing) {
+        existing.quantity += quantity;
+      } else {
+        session.cart.push({ productId: product.id, quantity });
+      }
+    }
+  });
+
+  // Done selecting packaging
+  bot.action('packaging_done', async (ctx) => {
+    const session = getSession(ctx.from!.id.toString());
+    await ctx.answerCbQuery();
+    
+    await showOrderConfirmation(ctx, session);
   });
   
   // Finalize checkout (after collecting contact details)
