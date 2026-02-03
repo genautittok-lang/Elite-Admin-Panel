@@ -421,15 +421,24 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   const txt = getText(session);
   const catalogType = session.currentCatalogType || 'preorder';
   
+  // Clear all previous messages first
+  await clearOldMessages(ctx, session);
+  
+  // Try to delete the current message
+  try {
+    await ctx.deleteMessage();
+  } catch {}
+  
   // Validate session state - currentFarm is optional for instock
   if (!session.currentType || !session.currentCountry || (catalogType === 'preorder' && !session.currentFarm)) {
-    await ctx.editMessageText(
+    const msg = await ctx.reply(
       '❌ Сесія застаріла. Почніть з початку.',
       Markup.inlineKeyboard([
         [Markup.button.callback('🌹 Каталог', 'catalog')],
         [Markup.button.callback('🏠 Меню', 'menu')]
       ])
     );
+    registerMessage(session, msg.message_id);
     return;
   }
   
@@ -481,6 +490,8 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   if (currentFilters.height) message += `✓ Висота: ${currentFilters.height} см\n`;
   if (currentFilters.color) message += `✓ Колір: ${currentFilters.color}\n`;
   
+  message += `\n📦 Знайдено: ${filteredProducts.length} товарів`;
+  
   const buttons: any[] = [];
   
   // Class filter
@@ -520,36 +531,38 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
   }
   buttons.push([Markup.button.callback('🏠 Меню', 'menu')]);
   
-  // If there are filter options available, show filter menu, else show products directly
+  // If there are filter options available, show products first, then filter menu at the bottom
   const hasFilterOptions = classes.length > 1 || heights.length > 1 || colors.length > 1;
   
   if (hasFilterOptions) {
-    // Show filter menu with options
-    try {
-      await ctx.editMessageText(message, { 
-        parse_mode: 'Markdown', 
-        ...Markup.inlineKeyboard(buttons) 
-      });
-    } catch {
-      await ctx.reply(message, { 
-        parse_mode: 'Markdown', 
-        ...Markup.inlineKeyboard(buttons) 
-      });
-    }
-    
-    // Show products directly after filter menu
+    // Show products first
     for (const product of filteredProducts) {
       await sendProductCard(ctx, product, session);
     }
+    
+    // Show filter menu at the bottom after products
+    const filterMsg = await ctx.reply(message, { 
+      parse_mode: 'Markdown', 
+      ...Markup.inlineKeyboard(buttons) 
+    });
+    registerMessage(session, filterMsg.message_id);
   } else {
     // No filter options - just show products directly
-    try {
-      await ctx.deleteMessage();
-    } catch {}
-    
     for (const product of filteredProducts) {
       await sendProductCard(ctx, product, session);
     }
+    
+    // Show simple navigation at the bottom
+    const navButtons = [];
+    if (catalogType === 'instock') {
+      navButtons.push([Markup.button.callback('◀️ До типів', `country_instock_${session.currentCountry}`)]);
+    } else {
+      navButtons.push([Markup.button.callback('◀️ До ферм', `country_preorder_${session.currentCountry}`)]);
+    }
+    navButtons.push([Markup.button.callback('🏠 Меню', 'menu')]);
+    
+    const navMsg = await ctx.reply('📦 Навігація:', Markup.inlineKeyboard(navButtons));
+    registerMessage(session, navMsg.message_id);
   }
 }
 
@@ -1090,7 +1103,7 @@ if (bot) {
     
     const products = await getCachedProducts();
     const filtered = products.filter(p => 
-      p.plantationId === session.currentFarm &&
+      (catalogType === 'instock' || p.plantationId === session.currentFarm) &&
       p.typeId === session.currentType &&
       p.catalogType === catalogType
     );
@@ -1124,26 +1137,33 @@ if (bot) {
     
     const products = await getCachedProducts();
     const filtered = products.filter(p => 
-      p.plantationId === session.currentFarm &&
+      (catalogType === 'instock' || p.plantationId === session.currentFarm) &&
       p.typeId === session.currentType &&
       p.catalogType === catalogType
     );
     
-    // Parse comma-separated heights and get unique values
-    const allHeights: number[] = [];
+    // Parse comma-separated heights and collect unique values with min prices
+    const heightPrices: Map<number, number> = new Map();
     filtered.forEach(p => {
+      const priceUsd = parseFloat(p.priceUsd?.toString() || '0');
       String(p.height).split(',').forEach(h => {
         const parsed = parseInt(h.trim());
-        if (!isNaN(parsed) && !allHeights.includes(parsed)) {
-          allHeights.push(parsed);
+        if (!isNaN(parsed)) {
+          const currentMin = heightPrices.get(parsed);
+          if (currentMin === undefined || priceUsd < currentMin) {
+            heightPrices.set(parsed, priceUsd);
+          }
         }
       });
     });
-    const heights = allHeights.sort((a, b) => a - b);
     
-    const buttons = heights.map(h => [
-      Markup.button.callback(`${h} см`, `set_height_${h}`)
-    ]);
+    const heights = Array.from(heightPrices.keys()).sort((a, b) => a - b);
+    
+    const buttons = heights.map(h => {
+      const priceUsd = heightPrices.get(h) || 0;
+      const priceLabel = priceUsd > 0 ? ` - $${priceUsd.toFixed(2)}` : '';
+      return [Markup.button.callback(`${h} см${priceLabel}`, `set_height_${h}`)];
+    });
     buttons.push([Markup.button.callback('◀️ Назад', 'back_to_filters')]);
     
     await ctx.editMessageText(
@@ -1168,7 +1188,7 @@ if (bot) {
     
     const products = await getCachedProducts();
     const filtered = products.filter(p => 
-      p.plantationId === session.currentFarm &&
+      (catalogType === 'instock' || p.plantationId === session.currentFarm) &&
       p.typeId === session.currentType &&
       p.catalogType === catalogType
     );
