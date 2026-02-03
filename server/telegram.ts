@@ -214,7 +214,7 @@ const t = {
     noHistory: 'У вас ще немає замовлень',
     noFavorites: 'Обране порожнє',
     stem: 'шт',
-    box: 'упак',
+    box: 'шт',
     available: '🟢 В наявності',
     preorderStatus: '🟡 Під замовлення',
     expected: '🔵 Очікується',
@@ -281,7 +281,7 @@ const t = {
     noHistory: 'No orders yet',
     noFavorites: 'Favorites empty',
     stem: 'pcs',
-    box: 'box',
+    box: 'pcs',
     available: '🟢 Available',
     preorderStatus: '🟡 Pre-order',
     expected: '🔵 Expected',
@@ -348,7 +348,7 @@ const t = {
     noHistory: 'Заказов пока нет',
     noFavorites: 'Избранное пусто',
     stem: 'шт',
-    box: 'уп',
+    box: 'шт',
     available: '🟢 В наличии',
     preorderStatus: '🟡 Под заказ',
     expected: '🔵 Ожидается',
@@ -1352,9 +1352,9 @@ if (bot) {
     // Update the message with new button state
     const buttons = Markup.inlineKeyboard([
       [
-        Markup.button.callback('📦 +1', `c_1_${shortId}`),
-        Markup.button.callback('📦 +5', `c_5_${shortId}`),
-        Markup.button.callback('📦 +10', `c_10_${shortId}`)
+        Markup.button.callback('+25 шт', `c_25_${shortId}`),
+        Markup.button.callback('+50 шт', `c_50_${shortId}`),
+        Markup.button.callback('+100 шт', `c_100_${shortId}`)
       ],
       [
         Markup.button.callback(session.favorites.includes(product.id) ? '❤️ В обраному' : '🤍 В обране', `f_${shortId}`),
@@ -1437,7 +1437,7 @@ if (bot) {
         
         message += `*${itemNum}. ${product.name}*\n`;
         message += `   _${product.variety}_\n`;
-        message += `   📦 ${item.quantity} упак. × ${price.toLocaleString('uk-UA')} грн\n`;
+        message += `   📦 ${item.quantity} шт × ${price.toLocaleString('uk-UA')} грн\n`;
         message += `   💰 = *${itemTotal.toLocaleString('uk-UA')} грн*\n\n`;
         itemNum++;
       }
@@ -1634,7 +1634,7 @@ if (bot) {
     
     for (const item of items) {
       confirmMessage += `• ${item.product.name}\n`;
-      confirmMessage += `   ${item.quantity} упак. × ${item.price.toLocaleString('uk-UA')} грн\n`;
+      confirmMessage += `   ${item.quantity} шт × ${item.price.toLocaleString('uk-UA')} грн\n`;
     }
     
     confirmMessage += '\n━━━━━━━━━━━━━━━━━━\n';
