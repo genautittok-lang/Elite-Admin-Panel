@@ -106,10 +106,12 @@ export async function registerRoutes(
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { phone, password } = req.body;
+      console.log("Login attempt:", { phone, hasPassword: !!password });
       if (!phone || !password) {
         return res.status(400).json({ error: "Phone and password required" });
       }
       const user = await storage.getUserByUsername(phone);
+      console.log("User found:", !!user, user ? { id: user.id, username: user.username } : null);
       if (!user || user.password !== password) {
         return res.status(401).json({ error: "Invalid credentials" });
       }

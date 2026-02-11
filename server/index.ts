@@ -18,6 +18,10 @@ process.on('unhandledRejection', (reason, promise) => {
 const app = express();
 const httpServer = createServer(app);
 
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
@@ -96,6 +100,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const { storage: appStorage } = await import("./storage");
+  try {
+    const adminUser = await appStorage.getUserByUsername("+15619386333");
+    if (!adminUser) {
+      console.log("Creating admin user...");
+      await appStorage.createUser({ username: "+15619386333", password: "Admin123" });
+      console.log("Admin user created successfully");
+    }
+  } catch (e) {
+    console.error("Failed to ensure admin user:", e);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
