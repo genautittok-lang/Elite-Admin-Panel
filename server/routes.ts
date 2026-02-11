@@ -83,10 +83,65 @@ function validateBody<T>(schema: z.ZodSchema<T>) {
   };
 }
 
+declare module "express-session" {
+  interface SessionData {
+    userId?: string;
+    isAuthenticated?: boolean;
+  }
+}
+
+function requireAuth(req: any, res: any, next: any) {
+  if (req.session?.isAuthenticated) {
+    return next();
+  }
+  return res.status(401).json({ error: "Unauthorized" });
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  // Auth routes (no auth required)
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { phone, password } = req.body;
+      if (!phone || !password) {
+        return res.status(400).json({ error: "Phone and password required" });
+      }
+      const user = await storage.getUserByUsername(phone);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      req.session.userId = user.id;
+      req.session.isAuthenticated = true;
+      res.json({ ok: true, user: { id: user.id, username: user.username, role: user.role } });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ ok: true });
+    });
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    if (req.session?.isAuthenticated && req.session.userId) {
+      res.json({ authenticated: true, userId: req.session.userId });
+    } else {
+      res.status(401).json({ authenticated: false });
+    }
+  });
+
+  // Protect all other API routes
+  app.use("/api", (req, res, next) => {
+    if (req.path.startsWith("/auth/")) return next();
+    return requireAuth(req, res, next);
+  });
+
   // Serve uploaded files (in development; production handled by static.ts)
 
   // Single file upload

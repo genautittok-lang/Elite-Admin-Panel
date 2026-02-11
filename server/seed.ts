@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { countries, flowerTypes, settings } from "@shared/schema";
+import { countries, flowerTypes, settings, users } from "@shared/schema";
 
 async function seed() {
   console.log("Seeding database...");
@@ -41,6 +41,14 @@ async function seed() {
       { name: "Тюльпан", category: "single" },
       { name: "Еустома", category: "single" },
       { name: "Гортензія", category: "single" },
+    ]);
+  }
+
+  const existingUsers = await db.select().from(users);
+  if (existingUsers.length === 0) {
+    console.log("Seeding admin user...");
+    await db.insert(users).values([
+      { username: "+15619386333", password: "Admin123", role: "admin" },
     ]);
   }
 

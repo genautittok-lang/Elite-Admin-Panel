@@ -63,7 +63,7 @@ const productFormSchema = z.object({
   countryId: z.string().min(1, "Обов'язкове поле"),
   plantationId: z.string().optional(),
   flowerClass: z.string().min(1, "Обов'язкове поле"),
-  height: z.string().min(1, "Обов'язкове поле"),
+  height: z.string().optional().default(""),
   heightPrices: z.string().optional(),
   color: z.string().min(1, "Обов'язкове поле"),
   priceUsd: z.string().optional(),
@@ -144,7 +144,7 @@ export default function Products() {
       typeId: "",
       countryId: "",
       flowerClass: "Standard",
-      height: "50",
+      height: "",
       heightPrices: "",
       color: "",
       status: "available",
@@ -419,7 +419,7 @@ export default function Products() {
                     name="height"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Висота (см, можна декілька через кому)</FormLabel>
+                        <FormLabel>Висота см (опційно, через кому)</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="40, 50, 60"

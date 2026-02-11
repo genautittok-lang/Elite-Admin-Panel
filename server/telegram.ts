@@ -505,7 +505,10 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
     });
   }
   if (currentFilters.color) {
-    filteredProducts = filteredProducts.filter(p => p.color === currentFilters.color);
+    filteredProducts = filteredProducts.filter(p => {
+      const productColors = String(p.color).split(',').map(c => c.trim());
+      return productColors.includes(currentFilters.color as string);
+    });
   }
   
   // Get available filter options from currently filtered products
@@ -521,7 +524,16 @@ async function showFilterMenu(ctx: Context, session: UserSession) {
     });
   });
   const heights = allHeights.sort((a, b) => a - b);
-  const colors = Array.from(new Set(baseProducts.map(p => p.color)));
+  const allColors: string[] = [];
+  baseProducts.forEach(p => {
+    String(p.color).split(',').forEach(c => {
+      const trimmed = c.trim();
+      if (trimmed && !allColors.includes(trimmed)) {
+        allColors.push(trimmed);
+      }
+    });
+  });
+  const colors = allColors.sort();
   
   let message = '🔍 *Фільтри:*\n\n';
   
@@ -628,6 +640,9 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     product.name.toLowerCase().includes('коробка') ||
     product.name.toLowerCase().includes('сітка');
   
+  const heightPricesStr = (product as any).heightPrices;
+  const hasHeightPrices = !!(heightPricesStr && product.catalogType === 'preorder');
+  
   // Build beautiful product card - clean and simple
   let message = '';
   if (isPromo || isPromoActive) {
@@ -641,11 +656,13 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   } else {
     message += `_${product.variety}_\n\n`;
     message += `├ ${txt.class}: ${product.flowerClass}\n`;
-    message += `├ ${txt.height}: ${product.height} см\n`;
+    
+    if (!hasHeightPrices && product.height && product.height !== '0') {
+      message += `├ ${txt.height}: ${product.height} см\n`;
+    }
     message += `└ ${txt.color}: ${product.color}\n\n`;
     
     // Check if multi-height pricing is available
-    const heightPricesStr = (product as any).heightPrices;
     if (heightPricesStr && product.catalogType === 'preorder') {
       // Parse heightPrices format: "60:1.20, 70:2.20" - prices in USD, convert to UAH
       const rateSetting = await storage.getSetting('usd_to_uah_rate');
@@ -682,8 +699,7 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
   }
   
   // Check if multi-height pricing - show height selection buttons
-  const heightPricesStr2 = (product as any).heightPrices;
-  const hasMultiHeight = heightPricesStr2 && product.catalogType === 'preorder';
+  const hasMultiHeight = hasHeightPrices;
   
   let buttonRows: any[] = [];
   
@@ -691,7 +707,7 @@ async function sendProductCard(ctx: Context, product: Product, session: UserSess
     // Parse heights and create selection buttons
     const rateSetting = await storage.getSetting('usd_to_uah_rate');
     const rate = parseFloat(rateSetting?.value || '41.5');
-    const parts = heightPricesStr2.split(',').map((p: string) => p.trim());
+    const parts = heightPricesStr.split(',').map((p: string) => p.trim());
     const heightButtons: any[] = [];
     
     for (const part of parts) {
