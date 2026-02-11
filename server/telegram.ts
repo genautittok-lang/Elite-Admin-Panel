@@ -1420,7 +1420,14 @@ if (bot) {
       p.catalogType === catalogType
     );
     
-    const colors = Array.from(new Set(filtered.map(p => p.color)));
+    const allColors = new Set<string>();
+    filtered.forEach(p => {
+      String(p.color).split(',').forEach(c => {
+        const trimmed = c.trim();
+        if (trimmed) allColors.add(trimmed);
+      });
+    });
+    const colors = Array.from(allColors).sort();
     
     const buttons = colors.map(c => [
       Markup.button.callback(c, `set_color_${c}`)
@@ -1488,7 +1495,10 @@ if (bot) {
       });
     }
     if (filters.color) {
-      filtered = filtered.filter(p => p.color === filters.color);
+      filtered = filtered.filter(p => {
+        const productColors = String(p.color).split(',').map(c => c.trim());
+        return productColors.includes(filters.color as string);
+      });
     }
     
     if (filtered.length === 0) {
